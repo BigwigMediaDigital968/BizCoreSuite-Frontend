@@ -127,7 +127,7 @@ const HeadDashboardPage = () => {
   return (
     <div className="min-h-screen bg-slate-50/50 p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Header Section */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white/70 p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
           <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs tracking-wider uppercase mb-1">
             <span className="h-1.5 w-1.5 rounded-full bg-indigo-600 animate-pulse" />
@@ -137,7 +137,7 @@ const HeadDashboardPage = () => {
             Head Dashboard
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Real-time insights across regional operations, sales pipelines, and
+            Real-time insights across regional operations, leads, revenue, and
             organizational metrics.
           </p>
         </div>

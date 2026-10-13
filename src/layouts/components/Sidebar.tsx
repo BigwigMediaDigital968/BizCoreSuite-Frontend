@@ -10,13 +10,6 @@ import { usePendingLateCheckInCount } from "@/features/attendance/api/lateCheckI
 import { useReportWindow } from "@/features/dailyReports";
 import { DAILY_REPORT_WINDOW_STATE } from "@/types/dailyReport";
 
-/**
- * `roles` narrows visibility, it never grants it — an entry that also declares
- * `permissions` must still pass them. Granting here would only produce links
- * that land on /unauthorized, since PermissionRoute still guards the route.
- * Use it for entries permissions can't express, e.g. a path with no backing
- * permission (Settings) or a group that should stay role-scoped (SYSTEM).
- */
 export interface NavChild {
   label: string;
   path: string;
@@ -416,10 +409,10 @@ const Sidebar = () => {
           } ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
       >
-        <div className="flex h-16 items-center gap-3 border-b border-white/10 px-5 shrink-0">
+        <div className="flex h-20 items-center gap-3 border-b border-white/10 px-5 shrink-0">
           <div className="flex h-16 shrink-0 items-center justify-center rounded-lg">
             <img
-              src="/brand-logo.png"
+              src="/favicon-1.png"
               className="h-10 w-auto grayscale-100 brightness-0 invert-100"
             />
           </div>
@@ -427,7 +420,7 @@ const Sidebar = () => {
           {!collapsed && (
             <img
               src="/brand-name.png"
-              className="h-8 w-auto grayscale-100 brightness-0 invert-100"
+              className="h-10 w-auto grayscale-100 brightness-0 invert-100"
             />
           )}
         </div>

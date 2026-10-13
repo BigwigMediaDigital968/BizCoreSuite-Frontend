@@ -1,184 +1,3 @@
-// import { useState } from "react";
-// import { useAuthStore } from "@/store/auth.store";
-// import { useSidebarStore } from "@/store/sidebar.store";
-// import { useLogout } from "@/hooks/useAuth";
-// import { Link } from "react-router";
-// import QuickAddMenu from "./QuickAddMenu";
-// import { Can } from "@/components/Auth/Can";
-// import { ROLES } from "@/types/auth";
-
-// const Header = () => {
-//   const user = useAuthStore((s) => s.user);
-//   const { mutate: logout, isPending } = useLogout();
-//   const { collapsed, toggleSidebar, toggleMobileSidebar } = useSidebarStore();
-//   const [profileOpen, setProfileOpen] = useState(false);
-
-//   // Fallback initials calculation
-//   const initials =
-//     user?.name
-//       ?.split(" ")
-//       .map((n) => n[0])
-//       .slice(0, 2)
-//       .join("")
-//       .toUpperCase() ?? "GU";
-
-//   return (
-//     <header
-//       className={`fixed top-0 right-0 left-0 z-30 flex h-16 items-center justify-between border-b border-outline-variant/30 bg-surface/85 px-4 backdrop-blur-md transition-all duration-300 sm:px-6 ${
-//         collapsed ? "lg:left-20" : "lg:left-64"
-//       }`}
-//     >
-//       {/* Left Action & Search Section */}
-//       <div className="flex flex-1 items-center gap-3">
-//         {/* Mobile Toggle Button */}
-//         <button
-//           onClick={toggleMobileSidebar}
-//           aria-label="Toggle Mobile Menu"
-//           className="flex h-10 w-10 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface lg:hidden transition-colors"
-//         >
-//           <span className="material-symbols-outlined text-2xl">menu</span>
-//         </button>
-
-//         {/* Desktop Collapse Toggle */}
-//         <button
-//           onClick={toggleSidebar}
-//           aria-label="Toggle Sidebar"
-//           className="hidden h-10 w-10 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface lg:flex transition-colors"
-//         >
-//           <span className="material-symbols-outlined text-2xl">
-//             {collapsed ? "menu" : "menu_open"}
-//           </span>
-//         </button>
-
-//         {/* Search Bar */}
-//         <div className="hidden max-w-md flex-1 items-center gap-2 rounded-xl border border-outline-variant/40 bg-surface-container-lowest px-3 py-1.5 shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all md:flex">
-//           <span className="material-symbols-outlined text-xl text-on-surface-variant/70">
-//             search
-//           </span>
-//           <input
-//             type="text"
-//             placeholder="Search leads, employees..."
-//             className="w-full bg-transparent text-sm text-on-surface outline-none placeholder:text-on-surface-variant/50"
-//           />
-//           <kbd className="hidden rounded bg-surface-container-high px-2 py-0.5 text-[10px] font-semibold text-on-surface-variant/70 xl:inline-block">
-//             ⌘K
-//           </kbd>
-//         </div>
-//       </div>
-
-//       {/* Right Controls Section */}
-//       <div className="flex items-center gap-3 sm:gap-4">
-//         {/* Quick Add Action Button */}
-//         <Can permission={["user:create", "lead:create", "branch:create"]}>
-//           <QuickAddMenu />
-//         </Can>
-
-//         {/* Notification Icon */}
-//         {/* <button
-//           aria-label="Notifications"
-//           className="relative flex h-10 w-10 items-center justify-center rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"
-//         >
-//           <span className="material-symbols-outlined text-xl">notifications</span>
-//           <span className="absolute top-2.5 right-2.5 flex h-2 w-2">
-//             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-error opacity-75" />
-//             <span className="relative inline-flex h-2 w-2 rounded-full bg-error" />
-//           </span>
-//         </button> */}
-
-//         <div className="h-6 w-px bg-outline-variant/40" />
-
-//         {/* User Profile Menu */}
-//         <div
-//           className="relative"
-//           onMouseEnter={() => setProfileOpen(true)}
-//           onMouseLeave={() => setProfileOpen(false)}
-//         >
-//           <button
-//             onClick={() => setProfileOpen((prev) => !prev)}
-//             className="flex items-center gap-3 rounded-xl p-1 text-left hover:bg-surface-container-high transition-colors focus:outline-none"
-//           >
-//             <div className="hidden text-right sm:block">
-//               <p className="text-xs font-semibold leading-none text-on-surface">
-//                 {user?.name ?? "Guest User"}
-//               </p>
-//               <p className="mt-1 text-[10px] font-bold leading-none tracking-wider text-on-surface-variant/70 uppercase">
-//                 {user?.role ?? "Member"}
-//               </p>
-//             </div>
-//             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary shadow-sm ring-2 ring-primary/20">
-//               {initials}
-//             </div>
-//           </button>
-
-//           {/* Profile Dropdown Menu */}
-//           {profileOpen && (
-//             <>
-//               {/* Click-outside backdrop for touch screens / mobile */}
-//               <div
-//                 className="fixed inset-0 z-40 sm:hidden"
-//                 onClick={() => setProfileOpen(false)}
-//               />
-
-//               <div className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-1.5 shadow-xl transition-all">
-//                 <div className="px-3 py-2 sm:hidden border-b border-outline-variant/20 mb-1">
-//                   <p className="text-xs font-semibold text-on-surface">
-//                     {user?.name ?? "Guest User"}
-//                   </p>
-//                   <p className="text-[10px] text-on-surface-variant uppercase">
-//                     {user?.role ?? "Member"}
-//                   </p>
-//                 </div>
-
-//                 <Link
-//                   to="/profile"
-//                   onClick={() => setProfileOpen(false)}
-//                   className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-on-surface hover:bg-surface-container-high transition-colors"
-//                 >
-//                   <span className="material-symbols-outlined text-lg text-on-surface-variant">
-//                     person
-//                   </span>
-//                   My Profile
-//                 </Link>
-
-//                 {/* Manager/Employee only — Head/Admin aren't scoped to a
-//                     single branch, so "My Branch" isn't meaningful for them. */}
-//                 {(user?.role === ROLES.MANAGER || user?.role === ROLES.EMPLOYEE) &&
-//                   user?.branches?.[0] && (
-//                   <Link
-//                     to={`/branches/${user.branches[0]}`}
-//                     onClick={() => setProfileOpen(false)}
-//                     className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-on-surface hover:bg-surface-container-high transition-colors"
-//                   >
-//                     <span className="material-symbols-outlined text-lg text-on-surface-variant">
-//                       business
-//                     </span>
-//                     My Branch
-//                   </Link>
-//                 )}
-
-//                 <div className="my-1 border-t border-outline-variant/20" />
-
-//                 <button
-//                   onClick={() => logout()}
-//                   disabled={isPending}
-//                   className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-error hover:bg-error-container/20 transition-colors"
-//                 >
-//                   <span className="material-symbols-outlined text-lg">
-//                     logout
-//                   </span>
-//                   {isPending ? "Logging out..." : "Log out"}
-//                 </button>
-//               </div>
-//             </>
-//           )}
-//         </div>
-//       </div>
-//     </header>
-//   );
-// };
-
-// export default Header;
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAuthStore } from "@/store/auth.store";
@@ -300,7 +119,7 @@ const Header = () => {
 
   return (
     <header
-      className={`fixed top-0 right-0 left-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-md transition-all duration-300 sm:px-6 ${
+      className={`fixed top-0 right-0 left-0 z-30 flex h-16 items-center justify-between border-b border-purple-100 bg-white/80 px-4 backdrop-blur-md transition-all duration-300 sm:px-6 ${
         collapsed ? "lg:left-20" : "lg:left-64"
       }`}
     >
@@ -310,7 +129,7 @@ const Header = () => {
         <button
           onClick={toggleMobileSidebar}
           aria-label="Toggle Mobile Menu"
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 lg:hidden transition-colors"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-purple-600/70 hover:bg-purple-50 lg:hidden transition-colors"
         >
           <span className="material-symbols-outlined text-2xl">menu</span>
         </button>
@@ -319,7 +138,7 @@ const Header = () => {
         <button
           onClick={toggleSidebar}
           aria-label="Toggle Sidebar"
-          className="hidden h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 lg:flex transition-colors"
+          className="hidden h-10 w-10 items-center justify-center rounded-lg text-purple-600/70 hover:bg-purple-50 lg:flex transition-colors"
         >
           <span className="material-symbols-outlined text-2xl">
             {collapsed ? "menu" : "menu_open"}
@@ -329,13 +148,13 @@ const Header = () => {
         {/* Direct Integrated Search Bar Container */}
         <div ref={searchContainerRef} className="relative max-w-md flex-1">
           <div
-            className={`flex items-center gap-2 rounded-xl border bg-slate-50/80 px-3 py-1.5 transition-all ${
+            className={`flex items-center gap-2 rounded-xl border bg-purple-50/40 px-3 py-1.5 transition-all ${
               searchFocused
-                ? "border-indigo-500 bg-white ring-2 ring-indigo-500/20 shadow-xs"
-                : "border-slate-200 hover:border-slate-300"
+                ? "border-purple-500 bg-white ring-2 ring-purple-500/20 shadow-xs"
+                : "border-purple-100 hover:border-purple-200"
             }`}
           >
-            <span className="material-symbols-outlined text-xl text-slate-400 shrink-0">
+            <span className="material-symbols-outlined text-xl text-purple-400 shrink-0">
               search
             </span>
             <input
@@ -349,20 +168,20 @@ const Header = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchKeyDown}
               placeholder="Search modules, leads, actions..."
-              className="w-full bg-transparent text-xs text-slate-800 outline-none placeholder:text-slate-400 font-medium"
+              className="w-full bg-transparent text-xs text-purple-950 outline-none placeholder:text-purple-400 font-medium"
             />
             {searchQuery ? (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="text-slate-400 hover:text-slate-600 text-xs shrink-0"
+                className="text-purple-400 hover:text-purple-600 text-xs shrink-0"
               >
                 <span className="material-symbols-outlined text-base">
                   close
                 </span>
               </button>
             ) : (
-              <kbd className="hidden rounded bg-slate-200/70 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 sm:inline-block shrink-0">
+              <kbd className="hidden rounded bg-purple-100/70 px-1.5 py-0.5 text-[10px] font-semibold text-purple-600 sm:inline-block shrink-0">
                 ⌘K
               </kbd>
             )}
@@ -370,14 +189,14 @@ const Header = () => {
 
           {/* Inline Search Dropdown Menu */}
           {searchFocused && (
-            <div className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl border border-purple-100 bg-white shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
               <div className="max-h-80 overflow-y-auto p-1 space-y-0.5">
                 {searchResults.length === 0 ? (
                   <div className="py-6 text-center space-y-1">
-                    <p className="text-xs font-bold text-slate-600">
+                    <p className="text-xs font-bold text-purple-900">
                       No matching results
                     </p>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-purple-400">
                       Try searching "Leads", "Tasks", or "Attendance"
                     </p>
                   </div>
@@ -392,16 +211,16 @@ const Header = () => {
                         onMouseEnter={() => setSelectedIndex(index)}
                         className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors text-left ${
                           isSelected
-                            ? "bg-indigo-50/80 text-indigo-950"
-                            : "hover:bg-slate-50 text-slate-700"
+                            ? "bg-purple-50 text-purple-950"
+                            : "hover:bg-purple-50/50 text-purple-900"
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div
                             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
                               isSelected
-                                ? "bg-indigo-600 text-white border-indigo-600"
-                                : "bg-slate-100 text-slate-500 border-slate-200"
+                                ? "bg-purple-600 text-white border-purple-600"
+                                : "bg-purple-50 text-purple-600 border-purple-100"
                             }`}
                           >
                             <span className="material-symbols-outlined text-base">
@@ -413,14 +232,14 @@ const Header = () => {
                               {item.title}
                             </p>
                             {item.description && (
-                              <p className="text-[10px] text-slate-400 truncate">
+                              <p className="text-[10px] text-purple-400 truncate">
                                 {item.description}
                               </p>
                             )}
                           </div>
                         </div>
 
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded shrink-0 ml-2">
+                        <span className="text-[9px] font-bold text-purple-600 uppercase tracking-wider bg-purple-100/60 px-1.5 py-0.5 rounded shrink-0 ml-2">
                           {item.category}
                         </span>
                       </button>
@@ -430,23 +249,23 @@ const Header = () => {
               </div>
 
               {/* Helper Footer */}
-              <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+              <div className="px-3 py-1.5 bg-purple-50/50 border-t border-purple-100 flex items-center justify-between text-[10px] text-purple-400">
                 <div className="flex items-center gap-2">
                   <span>
-                    <kbd className="bg-white border rounded px-1 font-mono">
+                    <kbd className="bg-white border border-purple-100 rounded px-1 font-mono">
                       ↑↓
                     </kbd>{" "}
                     navigate
                   </span>
                   <span>
-                    <kbd className="bg-white border rounded px-1 font-mono">
+                    <kbd className="bg-white border border-purple-100 rounded px-1 font-mono">
                       ↵
                     </kbd>{" "}
                     select
                   </span>
                 </div>
                 <span>
-                  <kbd className="bg-white border rounded px-1 font-mono">
+                  <kbd className="bg-white border border-purple-100 rounded px-1 font-mono">
                     esc
                   </kbd>{" "}
                   close
@@ -466,7 +285,7 @@ const Header = () => {
 
         <NotificationBell />
 
-        <div className="h-6 w-px bg-slate-200" />
+        <div className="h-6 w-px bg-purple-100" />
 
         {/* User Profile Menu */}
         <div
@@ -476,17 +295,17 @@ const Header = () => {
         >
           <button
             onClick={() => setProfileOpen((prev) => !prev)}
-            className="flex items-center gap-3 rounded-xl p-1 text-left hover:bg-slate-100 transition-colors focus:outline-none"
+            className="flex items-center gap-3 rounded-xl p-1 text-left hover:bg-purple-50/60 transition-colors focus:outline-none"
           >
             <div className="hidden text-right sm:block">
-              <p className="text-xs font-semibold leading-none text-slate-800">
+              <p className="text-xs font-semibold leading-none text-purple-950">
                 {user?.name ?? "Guest User"}
               </p>
-              <p className="mt-1 text-[10px] font-bold leading-none tracking-wider text-slate-400 uppercase">
+              <p className="mt-1 text-[10px] font-bold leading-none tracking-wider text-purple-400 uppercase">
                 {user?.role ?? "Member"}
               </p>
             </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-xs ring-2 ring-indigo-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-600 text-xs font-bold text-white shadow-xs ring-2 ring-purple-500/20">
               {initials}
             </div>
           </button>
@@ -499,12 +318,12 @@ const Header = () => {
                 onClick={() => setProfileOpen(false)}
               />
 
-              <div className="absolute right-0 z-50 mt-1 w-52 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl transition-all">
-                <div className="px-3 py-2 sm:hidden border-b border-slate-100 mb-1">
-                  <p className="text-xs font-semibold text-slate-800">
+              <div className="absolute right-0 z-50 mt-1 w-52 rounded-xl border border-purple-100 bg-white p-1.5 shadow-xl transition-all">
+                <div className="px-3 py-2 sm:hidden border-b border-purple-50 mb-1">
+                  <p className="text-xs font-semibold text-purple-950">
                     {user?.name ?? "Guest User"}
                   </p>
-                  <p className="text-[10px] text-slate-400 uppercase">
+                  <p className="text-[10px] text-purple-400 uppercase">
                     {user?.role ?? "Member"}
                   </p>
                 </div>
@@ -512,9 +331,9 @@ const Header = () => {
                 <Link
                   to="/profile"
                   onClick={() => setProfileOpen(false)}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-purple-900 hover:bg-purple-50/60 transition-colors"
                 >
-                  <span className="material-symbols-outlined text-lg text-slate-400">
+                  <span className="material-symbols-outlined text-lg text-purple-400">
                     person
                   </span>
                   My Profile
@@ -526,9 +345,9 @@ const Header = () => {
                     <Link
                       to={`/branches/${user.branches[0]}`}
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-purple-900 hover:bg-purple-50/60 transition-colors"
                     >
-                      <span className="material-symbols-outlined text-lg text-slate-400">
+                      <span className="material-symbols-outlined text-lg text-purple-400">
                         business
                       </span>
                       My Branch
@@ -540,21 +359,21 @@ const Header = () => {
                   <Link
                     to={ROUTES.myPayouts}
                     onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                    className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-purple-900 hover:bg-purple-50/60 transition-colors"
                   >
-                    <span className="material-symbols-outlined text-lg text-slate-400">
+                    <span className="material-symbols-outlined text-lg text-purple-400">
                       payments
                     </span>
                     My Payouts
                   </Link>
                 )}
 
-                <div className="my-1 border-t border-slate-100" />
+                <div className="my-1 border-t border-purple-50" />
 
                 <button
                   onClick={() => logout()}
                   disabled={isPending}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors"
                 >
                   <span className="material-symbols-outlined text-lg">
                     logout

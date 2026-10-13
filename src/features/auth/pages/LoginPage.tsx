@@ -54,8 +54,8 @@ const LoginPage = () => {
 
         <div className="relative z-10 flex items-center gap-3">
           <img
-            src="/logo.png"
-            className="h-20 w-auto grayscale-100 brightness-0 invert-100"
+            src="/favicon-1.png"
+            className="h-30 w-auto grayscale-100 brightness-0 invert-100"
           />
         </div>
 

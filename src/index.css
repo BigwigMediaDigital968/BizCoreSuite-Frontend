@@ -1,66 +1,73 @@
 @import "tailwindcss";
 
 @theme {
-  /* ---- Color tokens (Bharat Enterprise) ---- */
-  --color-surface: #f8f9ff;
-  --color-surface-dim: #cbdbf5;
-  --color-surface-bright: #f8f9ff;
+  /* ---- Color tokens (Purple/Lavender Aesthetic) ---- */
+  --color-surface: #f3effa;
+  --color-surface-dim: #e2d9f3;
+  --color-surface-bright: #faf8ff;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #eff4ff;
-  --color-surface-container: #e5eeff;
-  --color-surface-container-high: #dce9ff;
-  --color-surface-container-highest: #d3e4fe;
-  --color-surface-variant: #d3e4fe;
+  --color-surface-container-low: #f8f5fe;
+  --color-surface-container: #f1ebfa;
+  --color-surface-container-high: #e9e0f6;
+  --color-surface-container-highest: #e0d2f2;
+  --color-surface-variant: #e8dff5;
 
-  --color-on-surface: #0b1c30;
-  --color-on-surface-variant: #454652;
-  --color-inverse-surface: #213145;
-  --color-inverse-on-surface: #eaf1ff;
+  --color-on-surface: #3a2258;
+  --color-on-surface-variant: #6b5c82;
+  --color-inverse-surface: #311c4c;
+  --color-inverse-on-surface: #f7f3fd;
 
-  --color-outline: #757684;
-  --color-outline-variant: #c5c5d4;
-  --color-surface-tint: #4355b9;
+  --color-outline: #a092b7;
+  --color-outline-variant: #d5ccf0;
+  --color-surface-tint: #8a3ffc;
 
-  --color-primary: #24389c;
+  /* Primary Accent (Vibrant Purple & Pink/Magenta) */
+  --color-primary: #8a2be2;
   --color-on-primary: #ffffff;
-  --color-primary-container: #3f51b5;
-  --color-on-primary-container: #cacfff;
-  --color-inverse-primary: #bac3ff;
+  --color-primary-container: #ae48fd;
+  --color-on-primary-container: #f7e8ff;
+  --color-inverse-primary: #dcb3ff;
 
-  --color-secondary: #006591;
+  /* Secondary Accent (Vibrant Blue/Cyan Action Buttons & Highlights) */
+  --color-secondary: #3b82f6;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #39b8fd;
-  --color-on-secondary-container: #004666;
+  --color-secondary-container: #60a5fa;
+  --color-on-secondary-container: #1e3a8a;
 
-  --color-tertiary: #2a28bb;
+  /* Tertiary Accent (Bright Pink/Magenta Accent) */
+  --color-tertiary: #d946ef;
   --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #4446d2;
-  --color-on-tertiary-container: #ceceff;
+  --color-tertiary-container: #e879f9;
+  --color-on-tertiary-container: #701a75;
 
-  --color-error: #ba1a1a;
+  /* Error state tokens */
+  --color-error: #e11d48;
   --color-on-error: #ffffff;
-  --color-error-container: #ffdad6;
-  --color-on-error-container: #93000a;
+  --color-error-container: #ffe4e6;
+  --color-on-error-container: #881337;
 
-  --color-primary-fixed: #dee0ff;
-  --color-primary-fixed-dim: #bac3ff;
-  --color-on-primary-fixed: #00105c;
-  --color-on-primary-fixed-variant: #293ca0;
+  /* Primary Fixed Variants */
+  --color-primary-fixed: #eedaff;
+  --color-primary-fixed-dim: #d1a3ff;
+  --color-on-primary-fixed: #30005b;
+  --color-on-primary-fixed-variant: #6a1bb3;
 
-  --color-secondary-fixed: #c9e6ff;
-  --color-secondary-fixed-dim: #89ceff;
-  --color-on-secondary-fixed: #001e2f;
-  --color-on-secondary-fixed-variant: #004c6e;
+  /* Secondary Fixed Variants */
+  --color-secondary-fixed: #dbeafe;
+  --color-secondary-fixed-dim: #bfdbfe;
+  --color-on-secondary-fixed: #172554;
+  --color-on-secondary-fixed-variant: #1d4ed8;
 
-  --color-tertiary-fixed: #e1e0ff;
-  --color-tertiary-fixed-dim: #c0c1ff;
-  --color-on-tertiary-fixed: #07006c;
-  --color-on-tertiary-fixed-variant: #2f2ebe;
+  /* Tertiary Fixed Variants */
+  --color-tertiary-fixed: #fce7f3;
+  --color-tertiary-fixed-dim: #fbcfe8;
+  --color-on-tertiary-fixed: #500724;
+  --color-on-tertiary-fixed-variant: #be185d;
 
-  --color-background: #f8f9ff;
-  --color-on-background: #0b1c30;
+  --color-background: #eee8f8;
+  --color-on-background: #321f4c;
 
-  /* ---- Typography: font families (all Inter, kept as named roles) ---- */
+  /* ---- Typography: font families ---- */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-label-sm: "Inter", sans-serif;
   --font-body-sm: "Inter", sans-serif;
@@ -72,7 +79,7 @@
   --font-display-lg: "Inter", sans-serif;
   --font-display-lg-mobile: "Inter", sans-serif;
 
-  /* ---- Typography: type scale (size + line-height + weight + tracking) ---- */
+  /* ---- Typography: type scale ---- */
   --text-label-sm: 12px;
   --text-label-sm--line-height: 16px;
   --text-label-sm--font-weight: 500;
@@ -111,24 +118,6 @@
   --text-display-lg-mobile--line-height: 36px;
   --text-display-lg-mobile--font-weight: 700;
   --text-display-lg-mobile--letter-spacing: -0.01em;
-
-  /* ---- Radius (from DESIGN.md `rounded` block) ---- */
-  /* --radius-sm: 0.125rem;
-  --radius: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
-  --radius-full: 9999px; */
-
-  /* ---- Spacing (4px base rhythm) ----
-  --spacing: 4px;
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-gutter: 16px;
-  --spacing-margin: 24px; */
 }
 
 @layer base {
@@ -144,12 +133,12 @@
     color: var(--color-on-background);
   }
 
-  button{
+  button {
     cursor: pointer;
   }
 }
 
-/* Material Symbols default rendering (matches code.html mockups) */
+/* Material Symbols default rendering */
 .material-symbols-outlined {
   font-family: "Material Symbols Outlined", sans-serif;
   font-weight: normal;
