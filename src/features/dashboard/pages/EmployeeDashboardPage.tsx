@@ -111,7 +111,7 @@ const EmployeeDashboardPage = () => {
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-1.5 text-indigo-600 font-bold text-xs tracking-wider uppercase bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">
             <span className="material-symbols-outlined text-sm">waving_hand</span>
-            <span>Agent Workspace</span>
+            <span>Employee Workspace</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight capitalize">
             Welcome, {firstName}.
