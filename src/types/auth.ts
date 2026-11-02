@@ -216,6 +216,11 @@ export const PERMISSIONS = {
   DAILY_REPORT_REVIEW: "daily-report:review",
   DAILY_REPORT_EXPORT: "daily-report:export",
 
+  // Chat / Internal Communications
+  CHAT_VIEW: "chat:view",
+  CHAT_CREATE: "chat:create",
+  CHAT_MANAGE: "chat:manage",
+
   // Audit
   AUDIT_VIEW: "audit:view",
   AUDIT_READ: "audit:read",

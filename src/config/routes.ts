@@ -1,5 +1,6 @@
 export const ROUTES = {
   dashboard: "/dashboard",
+  chat: "/chat",
   employees: "/employees",
   branches: "/branches",
   leads: "/leads",

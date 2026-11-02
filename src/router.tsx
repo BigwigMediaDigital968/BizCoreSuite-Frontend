@@ -31,7 +31,11 @@ import {
   TeamAttendancePage,
 } from "@/features/attendance";
 import { TaskListPage, TaskFormPage, TaskDetailPage } from "@/features/tasks";
-import { CallHistoryPage, DialerPage, StringeeNumbersPage } from "./features/dialer";
+import {
+  CallHistoryPage,
+  DialerPage,
+  StringeeNumbersPage,
+} from "./features/dialer";
 import { PerformanceDispatcher } from "./features/performance";
 import {
   LeaveApprovalsPage,
@@ -58,6 +62,7 @@ import {
   IntegrationDetailPage,
   SettingsPage,
 } from "./features/integrations";
+import { ChatPage } from "@/features/chat/pages/ChatPage";
 import { ROUTES } from "./config/routes";
 import { PERMISSIONS } from "./types/auth";
 
@@ -158,7 +163,9 @@ export const router = createBrowserRouter([
 
           /* Attendance */
           {
-            element: <PermissionRoute permission={PERMISSIONS.ATTENDANCE_VIEW} />,
+            element: (
+              <PermissionRoute permission={PERMISSIONS.ATTENDANCE_VIEW} />
+            ),
             children: [
               // Own attendance. Head/Admin have none, so the dispatcher
               // forwards them to the org-wide report instead.
@@ -200,7 +207,10 @@ export const router = createBrowserRouter([
           {
             element: (
               <PermissionRoute
-                permission={[PERMISSIONS.LEAVE_APPROVE, PERMISSIONS.LEAVE_REJECT]}
+                permission={[
+                  PERMISSIONS.LEAVE_APPROVE,
+                  PERMISSIONS.LEAVE_REJECT,
+                ]}
               />
             ),
             children: [
@@ -242,7 +252,10 @@ export const router = createBrowserRouter([
               <PermissionRoute permission={PERMISSIONS.DAILY_REPORT_VIEW} />
             ),
             children: [
-              { path: ROUTES.dailyReports, element: <DailyReportsReviewPage /> },
+              {
+                path: ROUTES.dailyReports,
+                element: <DailyReportsReviewPage />,
+              },
             ],
           },
 
@@ -252,9 +265,7 @@ export const router = createBrowserRouter([
 
           /* Salary (Head): payouts, deductions, rules */
           {
-            element: (
-              <PermissionRoute permission={PERMISSIONS.SALARY_MANAGE} />
-            ),
+            element: <PermissionRoute permission={PERMISSIONS.SALARY_MANAGE} />,
             children: [
               { path: ROUTES.salary, element: <SalaryPage /> },
               { path: ROUTES.payoutNew, element: <GeneratePayoutPage /> },
@@ -282,8 +293,14 @@ export const router = createBrowserRouter([
             ),
             children: [
               { path: ROUTES.settings, element: <SettingsPage /> },
-              { path: ROUTES.integrationConnect, element: <ConnectIntegrationPage /> },
-              { path: ROUTES.integrationDetail, element: <IntegrationDetailPage /> },
+              {
+                path: ROUTES.integrationConnect,
+                element: <ConnectIntegrationPage />,
+              },
+              {
+                path: ROUTES.integrationDetail,
+                element: <IntegrationDetailPage />,
+              },
             ],
           },
 
@@ -296,19 +313,30 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            element: <PermissionRoute permission={PERMISSIONS.STRINGEE_NUMBER_VIEW} />,
+            element: (
+              <PermissionRoute permission={PERMISSIONS.STRINGEE_NUMBER_VIEW} />
+            ),
             children: [
               { path: "/dialer/numbers", element: <StringeeNumbersPage /> },
             ],
           },
 
+          {
+            element: <PermissionRoute permission={PERMISSIONS.CHAT_VIEW} />,
+            children: [{ path: ROUTES.chat, element: <ChatPage /> }],
+          },
+
           /* Contests */
           {
-            element: <PermissionRoute permission={PERMISSIONS.CONTEST_VIEW_ALL} />,
+            element: (
+              <PermissionRoute permission={PERMISSIONS.CONTEST_VIEW_ALL} />
+            ),
             children: [{ path: "/contests", element: <ContestListPage /> }],
           },
           {
-            element: <PermissionRoute permission={PERMISSIONS.CONTEST_CREATE} />,
+            element: (
+              <PermissionRoute permission={PERMISSIONS.CONTEST_CREATE} />
+            ),
             children: [{ path: "/contest/new", element: <ContestFormPage /> }],
           },
           // Ungated like /contest/:id: GET /contest/my-branch is scoped to the
@@ -319,7 +347,9 @@ export const router = createBrowserRouter([
           // branch's contest from ActiveContestPopup.
           { path: "/contest/:id", element: <ContestDetailsPage /> },
           {
-            element: <PermissionRoute permission={PERMISSIONS.CONTEST_UPDATE} />,
+            element: (
+              <PermissionRoute permission={PERMISSIONS.CONTEST_UPDATE} />
+            ),
             children: [
               { path: "/contest/:id/edit", element: <ContestFormPage /> },
             ],

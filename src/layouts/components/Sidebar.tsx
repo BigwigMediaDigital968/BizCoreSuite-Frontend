@@ -27,6 +27,7 @@ export interface NavItem {
   permissions?: Permission[];
   permissionMode?: "any" | "all";
   children?: NavChild[];
+  badgeCount?: number;
 }
 
 export interface NavGroup {
@@ -45,6 +46,12 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: "dashboard",
       },
       {
+        label: "Chat",
+        path: ROUTES.chat,
+        icon: "chat",
+        permissions: [PERMISSIONS.CHAT_VIEW],
+      },
+      {
         label: "Leads",
         icon: "group",
         permissions: [PERMISSIONS.LEAD_VIEW],
@@ -58,39 +65,16 @@ export const NAV_GROUPS: NavGroup[] = [
             label: "My Leads",
             path: `${ROUTES.leads}?view=mine`,
             permissions: [PERMISSIONS.LEAD_VIEW],
-            roles: [ROLES.EMPLOYEE]
+            roles: [ROLES.EMPLOYEE],
           },
           {
             label: "Follow-ups",
             path: `${ROUTES.leads}?view=followups`,
             permissions: [PERMISSIONS.LEAD_FOLLOWUP_VIEW],
-            roles: [ROLES.EMPLOYEE, ROLES.HEAD]
+            roles: [ROLES.EMPLOYEE, ROLES.HEAD],
           },
         ],
       },
-      // {
-      //   label: "Dialer",
-      //   icon: "call",
-      //   permissions: [PERMISSIONS.CALL_INITIATE],
-      //   children: [
-      //     {
-      //       label: "Dialer",
-      //       path: "/dialer",
-      //       permissions: [PERMISSIONS.CALL_INITIATE],
-      //       roles: [ROLES.HEAD, ROLES.ADMIN, ROLES.MANAGER, ROLES.EMPLOYEE]
-      //     },
-      //     {
-      //       label: "History",
-      //       path: "/dialer/history",
-      //       permissions: [PERMISSIONS.CALL_LOG_VIEW],
-      //     },
-      //     {
-      //       label: "Numbers",
-      //       path: "/dialer/numbers",
-      //       permissions: [PERMISSIONS.STRINGEE_NUMBER_VIEW],
-      //     },
-      //   ],
-      // },
       {
         label: "Tasks",
         path: "/tasks",
@@ -103,12 +87,10 @@ export const NAV_GROUPS: NavGroup[] = [
         permissions: [PERMISSIONS.ATTENDANCE_VIEW],
         children: [
           {
-            // Head/Admin don't punch in, so they get the report instead.
             label: "My Attendance",
             path: ROUTES.attendance,
             roles: [ROLES.EMPLOYEE],
             permissions: [PERMISSIONS.ATTENDANCE_VIEW],
-            
           },
           {
             label: "Team Attendance",
@@ -128,7 +110,6 @@ export const NAV_GROUPS: NavGroup[] = [
             permissions: [PERMISSIONS.LATE_CHECKIN_APPROVE],
           },
           {
-            // Own submitted requests — Head/Admin never file these.
             label: "My Late Requests",
             path: "/attendance/late-history",
             roles: [ROLES.EMPLOYEE],
@@ -142,8 +123,6 @@ export const NAV_GROUPS: NavGroup[] = [
         permissions: [PERMISSIONS.LEAVE_VIEW],
         children: [
           {
-            // Head/Admin don't take leave through the system, so they get the
-            // approval queue instead — same split as My Attendance.
             label: "My Leave",
             path: "/leave",
             roles: [ROLES.EMPLOYEE],
@@ -165,7 +144,7 @@ export const NAV_GROUPS: NavGroup[] = [
             label: "Leave Policies",
             path: "/leave/policies",
             permissions: [PERMISSIONS.LEAVE_POLICY_VIEW],
-             roles: [ROLES.HEAD, ROLES.ADMIN],
+            roles: [ROLES.HEAD, ROLES.ADMIN],
           },
         ],
       },
@@ -209,12 +188,6 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: "payments",
         permissions: [PERMISSIONS.REVENUE_VIEW],
       },
-      // {
-      //   label: "Achievements",
-      //   path: "/achievements",
-      //   icon: "military_tech",
-      //   permissions: [PERMISSIONS.ACHIEVEMENT_VIEW],
-      // },
       {
         label: "Contests",
         path: "/contests",
@@ -222,8 +195,6 @@ export const NAV_GROUPS: NavGroup[] = [
         permissions: [PERMISSIONS.CONTEST_VIEW_ALL],
       },
       {
-        // Employees/managers lack contest:view-all, so they get their
-        // branch's running contests instead.
         label: "Live Contests",
         path: "/contests/live",
         icon: "emoji_events",
@@ -233,8 +204,6 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "SYSTEM",
-    // Employees hold USER_VIEW and BRANCH_VIEW, so permissions alone would
-    // expose this group to them.
     roles: [ROLES.HEAD, ROLES.ADMIN, ROLES.MANAGER],
     items: [
       {
@@ -249,16 +218,7 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: "domain",
         permissions: [PERMISSIONS.BRANCH_VIEW],
       },
-      // {
-      //   // Integrations (lead sources) and future system settings: Head only.
-      //   label: "Settings",
-      //   path: ROUTES.settings,
-      //   icon: "settings",
-      //   roles: [ROLES.HEAD],
-      //   permissions: [PERMISSIONS.INTEGRATION_VIEW],
-      // },
       {
-        // Payouts span every branch and show everyone's salary: Head only.
         label: "Salary",
         path: ROUTES.salary,
         icon: "payments",
@@ -271,14 +231,6 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: "timer",
         permissions: [PERMISSIONS.AUDIT_VIEW],
       },
-      
-      // {
-      //   label: "Settings",
-      //   path: ROUTES.settings,
-      //   icon: "settings",
-      //   // No settings:view permission exists in the backend matrix.
-      //   roles: [ROLES.HEAD, ROLES.ADMIN],
-      // },
     ],
   },
 ];
@@ -293,12 +245,10 @@ const Sidebar = () => {
   const canApproveLateCheckIn = hasAnyPermission([PERMISSIONS.LATE_CHECKIN_APPROVE]);
   const { data: pendingLateCount = 0 } = usePendingLateCheckInCount(canApproveLateCheckIn);
 
-  // Head holds every permission, so gate on role too: only employees file reports.
   const canSubmitDailyReport =
     user?.role === ROLES.EMPLOYEE &&
     hasAnyPermission([PERMISSIONS.DAILY_REPORT_CREATE]);
   const { data: reportWindow } = useReportWindow(canSubmitDailyReport);
-  // A "1" badge while today's report is due and not yet filed.
   const dailyReportDue =
     !!reportWindow &&
     !reportWindow.report &&
@@ -337,8 +287,6 @@ const Sidebar = () => {
       .map((group) => {
         const items = group.items
           .map((item) => {
-            // An explicit `roles` list on a parent gates its whole subtree,
-            // so a visible child can't pull a restricted parent back in.
             if (!passesRoles(item.roles)) {
               return null;
             }
@@ -346,7 +294,6 @@ const Sidebar = () => {
             const visibleChildren = item.children
               ?.filter((child) => canAccess(child))
               .map((child) => {
-                // Attach dynamic badge count to Late Check-in Approvals child item
                 if (child.path === "/attendance/late-approvals") {
                   return { ...child, badgeCount: pendingLateCount };
                 }
@@ -382,8 +329,6 @@ const Sidebar = () => {
   });
 
   const toggleSubmenu = (label: string) => {
-    // Collapsed rail has no room for submenus: expand the sidebar and open
-    // the one that was clicked instead of silently toggling a hidden list.
     if (collapsed) {
       toggleSidebar();
       setOpenSubmenus((prev) => ({ ...prev, [label]: true }));
@@ -405,15 +350,16 @@ const Sidebar = () => {
       )}
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-full flex-col bg-primary text-on-primary shadow-2xl transition-all duration-300 select-none ${collapsed ? "w-20" : "w-64"
-          } ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-          }`}
+        className={`fixed left-0 top-0 z-50 flex h-full flex-col bg-primary text-on-primary shadow-2xl transition-all duration-300 select-none ${
+          collapsed ? "w-20" : "w-64"
+        } ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         <div className="flex h-20 items-center gap-3 border-b border-white/10 px-5 shrink-0">
           <div className="flex h-16 shrink-0 items-center justify-center rounded-lg">
             <img
               src="/favicon-1.png"
               className="h-10 w-auto grayscale-100 brightness-0 invert-100"
+              alt="Logo"
             />
           </div>
 
@@ -421,6 +367,7 @@ const Sidebar = () => {
             <img
               src="/brand-name.png"
               className="h-10 w-auto grayscale-100 brightness-0 invert-100"
+              alt="Brand"
             />
           )}
         </div>
@@ -438,13 +385,12 @@ const Sidebar = () => {
                 const hasChildren = Boolean(item?.children?.length);
                 const isExpanded = Boolean(openSubmenus[item?.label]);
                 const isChildActive = item?.children?.some(
-                  (child) => location.pathname + location.search === child.path,
+                  (child) => location.pathname + location.search === child.path
                 );
 
-                // Calculate cumulative total badges for parent item when collapsed
                 const totalParentBadgeCount = item?.children?.reduce(
                   (acc, child) => acc + (child.badgeCount || 0),
-                  0,
+                  0
                 );
 
                 if (!hasChildren && item?.path) {
@@ -455,9 +401,10 @@ const Sidebar = () => {
                       onClick={closeMobileSidebar}
                       title={collapsed ? item.label : undefined}
                       className={({ isActive }) =>
-                        `group relative flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${isActive
-                          ? "bg-white/15 text-white font-semibold shadow-sm"
-                          : "text-on-primary/75 hover:bg-white/10 hover:text-white"
+                        `group relative flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
+                          isActive
+                            ? "bg-white/15 text-white font-semibold shadow-sm"
+                            : "text-on-primary/75 hover:bg-white/10 hover:text-white"
                         }`
                       }
                     >
@@ -472,7 +419,13 @@ const Sidebar = () => {
                           </span>
 
                           {!collapsed && (
-                            <span className="truncate">{item.label}</span>
+                            <span className="truncate flex-1">{item.label}</span>
+                          )}
+
+                          {Boolean(item.badgeCount) && (
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-xs">
+                              {item.badgeCount}
+                            </span>
                           )}
                         </>
                       )}
@@ -486,59 +439,55 @@ const Sidebar = () => {
                       type="button"
                       onClick={() => toggleSubmenu(item?.label)}
                       title={collapsed ? item?.label : undefined}
-                      className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${isChildActive
+                      className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
+                        isChildActive
                           ? "text-white font-semibold"
                           : "text-on-primary/75 hover:bg-white/10 hover:text-white"
-                        }`}
+                      }`}
                     >
                       <div className="flex items-center gap-3.5">
-                        <div className="relative flex items-center">
-                          <span className="material-symbols-outlined text-xl shrink-0">
-                            {item?.icon}
-                          </span>
-                          {Boolean(collapsed && totalParentBadgeCount && totalParentBadgeCount > 0) && (
-                            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-primary" />
-                          )}
-                        </div>
-
-                        {!collapsed && <span>{item?.label}</span>}
+                        <span className="material-symbols-outlined text-xl shrink-0">
+                          {item.icon}
+                        </span>
+                        {!collapsed && <span className="truncate">{item.label}</span>}
                       </div>
 
-                      {!collapsed && (
+                      {!collapsed ? (
                         <div className="flex items-center gap-2">
-                          {Boolean(!isExpanded && totalParentBadgeCount && totalParentBadgeCount > 0) && (
-                            <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                          {Boolean(totalParentBadgeCount) && !isExpanded && (
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
                               {totalParentBadgeCount}
                             </span>
                           )}
-                          <span
-                            className={`material-symbols-outlined text-lg transition-transform duration-200 ${isExpanded ? "rotate-180" : ""
-                              }`}
-                          >
-                            expand_more
+                          <span className="material-symbols-outlined text-lg">
+                            {isExpanded ? "expand_less" : "expand_more"}
                           </span>
                         </div>
+                      ) : (
+                        Boolean(totalParentBadgeCount) && (
+                          <span className="flex h-2 w-2 rounded-full bg-rose-500" />
+                        )
                       )}
                     </button>
 
-                    {!collapsed && isExpanded && item?.children && (
-                      <div className="ml-9 space-y-1 border-l border-white/10 pl-3 my-1">
-                        {item.children.map((child) => (
+                    {hasChildren && isExpanded && !collapsed && (
+                      <div className="ml-9 space-y-1 border-l border-white/10 pl-3">
+                        {item.children?.map((child) => (
                           <NavLink
-                            key={child.path}
+                            key={child.label}
                             to={child.path}
                             onClick={closeMobileSidebar}
-                            end
                             className={({ isActive }) =>
-                              `flex items-center justify-between rounded-lg px-3 py-1.5 text-sm font-normal transition-colors ${isActive
-                                ? "text-white font-medium bg-white/10"
-                                : "text-on-primary/65 hover:text-white hover:bg-white/5"
+                              `flex items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+                                isActive
+                                  ? "bg-white/15 text-white font-semibold"
+                                  : "text-on-primary/70 hover:bg-white/10 hover:text-white"
                               }`
                             }
                           >
                             <span className="truncate">{child.label}</span>
-                            {Boolean(child.badgeCount && child.badgeCount > 0) && (
-                              <span className="ml-2 shrink-0 rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                            {Boolean(child.badgeCount) && (
+                              <span className="flex h-4 px-1.5 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
                                 {child.badgeCount}
                               </span>
                             )}

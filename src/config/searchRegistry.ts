@@ -6,7 +6,7 @@ export interface SearchableItem {
   title: string;
   description?: string;
   category:
-    "Navigation" | "Leads" | "Attendance" | "Leave" | "Dialer" | "Management";
+    "Navigation" | "Leads" | "Attendance" | "Leave" | "Dialer" | "Management" | "Communication";
   path: string;
   icon: string;
   keywords: string[];
@@ -319,6 +319,17 @@ export class SearchRegistry {
       roles: [ROLES.ADMIN, ROLES.HEAD, ROLES.MANAGER, ROLES.EMPLOYEE],
       permissions: [PERMISSIONS.LEAVE_BALANCE_VIEW],
     },
+
+    {
+  id: "chat",
+  title: "Internal Chat",
+  description: "Cross-role team messaging & channels",
+  path: ROUTES.chat,
+  icon: "chat",
+  category: "Communication",
+  keywords: ["chat", "messages", "slack", "slack-like", "team", "direct"],
+  permissions: [PERMISSIONS.CHAT_VIEW],
+},
 
     // System Administration
     {
