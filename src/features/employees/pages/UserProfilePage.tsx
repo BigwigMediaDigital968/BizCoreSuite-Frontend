@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { Can } from "@/components/Auth/Can";
 import { useEmployeeProfileByUserQuery, useEmployeeQuery } from "../hooks/useEmployees";
 import ResetPasswordButton from "../components/ResetPasswordButton";
+import DirectMessageToggle from "@/features/chat/components/DirectMessageToggle";
 import { PERMISSIONS, ROLE_LABELS } from "@/types/auth";
 
 const getInitials = (name?: string) =>
@@ -94,6 +95,9 @@ const UserProfilePage = () => {
           </button>
 
           <div className="flex items-center gap-3">
+            <Can permission={PERMISSIONS.CHAT_MANAGE}>
+              <DirectMessageToggle userId={id as string} />
+            </Can>
             <ResetPasswordButton
               userId={user._id}
               userName={user.name}
@@ -213,18 +217,23 @@ const UserProfilePage = () => {
           Back to Employees
         </button>
 
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${profile?.employmentStatus === "active"
-            ? "bg-emerald-500/10 text-emerald-700"
-            : "bg-error/10 text-error"
-            }`}
-        >
+        <div className="flex items-center gap-3">
+          <Can permission={PERMISSIONS.CHAT_MANAGE}>
+            <DirectMessageToggle userId={id as string} />
+          </Can>
           <span
-            className={`h-2 w-2 rounded-full ${profile?.employmentStatus === "active" ? "bg-emerald-500" : "bg-error"
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${profile?.employmentStatus === "active"
+              ? "bg-emerald-500/10 text-emerald-700"
+              : "bg-error/10 text-error"
               }`}
-          />
-          {profile?.employmentStatus}
-        </span>
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${profile?.employmentStatus === "active" ? "bg-emerald-500" : "bg-error"
+                }`}
+            />
+            {profile?.employmentStatus}
+          </span>
+        </div>
       </div>
 
       {/* Main Header Card */}

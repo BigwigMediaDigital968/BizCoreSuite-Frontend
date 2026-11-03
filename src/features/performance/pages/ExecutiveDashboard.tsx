@@ -238,7 +238,7 @@ const ExecutiveDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans p-2 sm:p-4 text-slate-900 dark:text-slate-100">
+    <div className="space-y-6 max-w-7xl mx-auto font-sans text-slate-900 dark:text-slate-100">
       {/* 1. HEADER SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>

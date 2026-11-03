@@ -328,7 +328,6 @@ export class SearchRegistry {
   icon: "chat",
   category: "Communication",
   keywords: ["chat", "messages", "slack", "slack-like", "team", "direct"],
-  permissions: [PERMISSIONS.CHAT_VIEW],
 },
 
     // System Administration

@@ -1,211 +1,224 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Send, Hash, User, Plus, Search, Shield } from "lucide-react";
-import { getMyRooms, getRoomMessages } from "../api/chatApi";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
+import { MessageSquarePlus, Plus, Search } from "lucide-react";
+import type { ChatMessage, ChatRoom } from "@/types/chat";
+import { useChatRooms, useMarkRoomRead } from "../hooks/useChat";
 import { useChatSocket } from "../hooks/useChatSocket";
-import { type ChatRoom, type ChatMessage } from "../../../types/chat";
-import { useAuth } from "@/hooks/useAuth"; // adjust import path to your auth hook
+import CreateChannelModal from "../components/CreateChannelModal";
+import NewMessageModal from "../components/NewMessageModal";
+import RoomList from "../components/RoomList";
+import { roomTitle } from "../utils/format";
+import Conversation from "../components/Conversation";
+import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useChatStore } from "@/store/chat.store";
+import { PERMISSIONS } from "@/types/auth";
+
+const DESKTOP_QUERY = "(min-width: 768px)";
+
+const useIsDesktop = () => {
+  const [isDesktop, setIsDesktop] = useState(
+    () => window.matchMedia(DESKTOP_QUERY).matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(DESKTOP_QUERY);
+    const onChange = () => setIsDesktop(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return isDesktop;
+};
 
 export const ChatPage = () => {
   const { user } = useAuth();
-  const [rooms, setRooms] = useState<ChatRoom[]>([]);
-  const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputMessage, setInputMessage] = useState("");
+  const { hasPermission } = usePermissions();
+  const canManageChat = hasPermission(PERMISSIONS.CHAT_MANAGE);
+  const isDesktop = useIsDesktop();
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newMessageOpen, setNewMessageOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Unsent text per conversation, kept while switching rooms.
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    getMyRooms().then((data) => {
-      setRooms(data);
-      if (data.length > 0) setActiveRoom(data[0]);
-    });
-  }, []);
+  const { data: rooms = [], isLoading: roomsLoading, isError: roomsError } =
+    useChatRooms();
+  const markRead = useMarkRoomRead();
 
-  useEffect(() => {
-    if (activeRoom) {
-      getRoomMessages(activeRoom._id).then(setMessages);
-    }
-  }, [activeRoom]);
+  // The open conversation lives in the URL (?room=) so notifications can
+  // link to it. Desktop falls back to the most recent room; on phones no
+  // selection means the room list is showing.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedRoomId = searchParams.get("room");
+  const activeRoom: ChatRoom | null =
+    rooms.find((r) => r._id === selectedRoomId) ??
+    (isDesktop ? rooms[0] : null) ??
+    null;
+  const showConversation = !!activeRoom && (isDesktop || !!selectedRoomId);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  const selectRoom = (room: ChatRoom) =>
+    setSearchParams({ room: room._id }, { replace: !!selectedRoomId });
+  const goBack = () => setSearchParams({}, { replace: false });
 
-  const { sendMessage } = useChatSocket(
-    activeRoom?._id || null,
-    (newMessage) => {
-      setMessages((prev) => [...prev, newMessage]);
-    }
+  const { sendMessage, discardMessage, emitTyping, typing } = useChatSocket(
+    rooms.filter((r) => r.type !== "DIRECT").map((r) => r._id)
   );
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim() || !activeRoom) return;
+  // Tell the app-wide listeners which conversation is on screen.
+  const setActiveRoomId = useChatStore((s) => s.setActiveRoomId);
+  const visibleRoomId = showConversation ? activeRoom!._id : null;
+  useEffect(() => {
+    setActiveRoomId(visibleRoomId);
+    return () => setActiveRoomId(null);
+  }, [visibleRoomId, setActiveRoomId]);
 
-    sendMessage(activeRoom._id, inputMessage.trim());
-    setInputMessage("");
-  };
+  // Mark the open conversation read while the tab is visible.
+  const activeUnread = showConversation ? activeRoom!.unreadCount : 0;
+  const { mutate: markRoomRead } = markRead;
+  useEffect(() => {
+    if (!visibleRoomId) return;
+    const markIfVisible = () => {
+      if (document.visibilityState === "visible" && activeUnread > 0) {
+        markRoomRead(visibleRoomId);
+      }
+    };
+    markIfVisible();
+    document.addEventListener("visibilitychange", markIfVisible);
+    window.addEventListener("focus", markIfVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", markIfVisible);
+      window.removeEventListener("focus", markIfVisible);
+    };
+  }, [visibleRoomId, activeUnread, markRoomRead]);
 
-  const isHeadOrAdmin = user?.role === "head" || user?.role === "admin";
+  const query = searchQuery.trim().toLowerCase();
+  const filteredRooms = query
+    ? rooms.filter((r) => roomTitle(r).toLowerCase().includes(query))
+    : rooms;
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      {/* Sidebar Channels & DMs */}
-      <div className="w-80 bg-slate-50 border-r border-slate-200 flex flex-col">
-        <div className="p-4 border-b border-slate-200 flex justify-between items-center">
-          <h2 className="font-bold text-slate-800 text-lg">Internal Chat</h2>
-          {isHeadOrAdmin && (
+    <div className="flex h-[calc(100vh-4rem)] overflow-hidden border border-slate-200 bg-white shadow-sm">
+      {/* Conversations */}
+      <div
+        className={`w-full flex-col border-r border-slate-200 bg-slate-50 md:flex md:w-80 ${
+          showConversation ? "hidden" : "flex"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2 border-b border-slate-200 p-4">
+          <h2 className="text-lg font-bold text-slate-800">Internal Chat</h2>
+          <div className="flex items-center gap-1.5">
             <button
-              className="p-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-              title="Create Channel (Head Only)"
+              type="button"
+              onClick={() => setNewMessageOpen(true)}
+              aria-label="New message"
+              title="New message"
+              className="rounded-lg bg-purple-600 p-1.5 text-white transition hover:bg-purple-700"
             >
-              <Plus className="w-4 h-4" />
+              <MessageSquarePlus className="h-4 w-4" />
             </button>
-          )}
+            {canManageChat && (
+              <button
+                type="button"
+                onClick={() => setCreateOpen(true)}
+                aria-label="Create channel"
+                title="Create channel"
+                className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 transition hover:bg-slate-100"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="p-3">
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <label htmlFor="chat-room-search" className="sr-only">
+              Search conversations
+            </label>
             <input
-              type="text"
-              placeholder="Search rooms..."
+              id="chat-room-search"
+              type="search"
+              placeholder="Search conversations"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-white text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          <div className="text-xs font-semibold text-slate-400 uppercase px-3 py-1">
-            Channels
-          </div>
-          {rooms
-            .filter((r) => r.type !== "DIRECT")
-            .map((room) => (
-              <button
-                key={room._id}
-                onClick={() => setActiveRoom(room)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                  activeRoom?._id === room._id
-                    ? "bg-purple-100 text-purple-700"
-                    : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                <Hash className="w-4 h-4 text-purple-500" />
-                <span className="truncate">{room.name || "General"}</span>
-              </button>
-            ))}
-
-          <div className="text-xs font-semibold text-slate-400 uppercase px-3 py-1 mt-4">
-            Direct Messages
-          </div>
-          {rooms
-            .filter((r) => r.type === "DIRECT")
-            .map((room) => {
-              const otherUser = room.participants.find(
-                (p) => p._id !== user?._id
-              );
-              return (
-                <button
-                  key={room._id}
-                  onClick={() => setActiveRoom(room)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                    activeRoom?._id === room._id
-                      ? "bg-purple-100 text-purple-700"
-                      : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  <User className="w-4 h-4 text-slate-500" />
-                  <span className="truncate">
-                    {otherUser?.name || "Direct Message"}
-                  </span>
-                </button>
-              );
-            })}
+        <div className="flex-1 overflow-y-auto p-2">
+          {roomsLoading ? (
+            <p className="px-3 py-2 text-sm text-slate-400">Loading chats…</p>
+          ) : roomsError ? (
+            <p className="px-3 py-2 text-sm text-slate-500">
+              Couldn't load your chats. Refresh to try again.
+            </p>
+          ) : query && filteredRooms.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-slate-500">
+              No conversations match "{searchQuery.trim()}".
+            </p>
+          ) : (
+            <RoomList
+              rooms={filteredRooms}
+              activeRoomId={showConversation ? activeRoom!._id : null}
+              currentUserId={user?._id}
+              onSelect={selectRoom}
+            />
+          )}
         </div>
       </div>
 
-      {/* Main Chat Window */}
-      {activeRoom ? (
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <div className="h-16 border-b border-slate-200 px-6 flex items-center justify-between bg-white">
-            <div className="flex items-center gap-2">
-              <Hash className="w-5 h-5 text-purple-600" />
-              <h3 className="font-semibold text-slate-800 text-lg">
-                {activeRoom.name || "Direct Message"}
-              </h3>
-            </div>
-            {isHeadOrAdmin && (
-              <span className="flex items-center gap-1.5 text-xs bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-medium">
-                <Shield className="w-3.5 h-3.5" /> Head Managed
-              </span>
-            )}
-          </div>
-
-          {/* Messages List */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">
-            {messages.map((msg) => {
-              const isMe = msg.senderId._id === user?._id;
-              return (
-                <div
-                  key={msg._id}
-                  className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold text-slate-600">
-                      {msg.senderId.name}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {new Date(msg.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </div>
-                  <div
-                    className={`max-w-md px-4 py-2.5 rounded-2xl text-sm ${
-                      isMe
-                        ? "bg-purple-600 text-white rounded-br-none"
-                        : "bg-white text-slate-800 border border-slate-200 shadow-sm rounded-bl-none"
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
-                </div>
-              );
-            })}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Send Input */}
-          <form
-            onSubmit={handleSend}
-            className="p-4 bg-white border-t border-slate-200 flex gap-3"
-          >
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-            />
-            <button
-              type="submit"
-              className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl flex items-center gap-2 font-medium transition shadow-sm"
-            >
-              <span>Send</span>
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
-        </div>
+      {/* Conversation */}
+      {showConversation ? (
+        <Conversation
+          key={activeRoom!._id}
+          room={activeRoom!}
+          currentUserId={user?._id}
+          typingName={typing[activeRoom!._id]}
+          draft={drafts[activeRoom!._id] ?? ""}
+          onDraftChange={(value) =>
+            setDrafts((prev) => ({ ...prev, [activeRoom!._id]: value }))
+          }
+          onSend={(content) => sendMessage(activeRoom!._id, content)}
+          onRetry={(msg: ChatMessage) =>
+            msg.clientId && sendMessage(msg.roomId, msg.content, msg.clientId)
+          }
+          onDiscard={(msg: ChatMessage) =>
+            msg.clientId && discardMessage(msg.roomId, msg.clientId)
+          }
+          onTyping={() => emitTyping(activeRoom!._id)}
+          onBack={goBack}
+        />
       ) : (
-        <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
-          Select a channel or message to start chatting
+        <div className="hidden flex-1 flex-col items-center justify-center gap-3 text-center md:flex">
+          {roomsLoading ? (
+            <p className="text-sm text-slate-400">Loading chats…</p>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-slate-600">No conversations yet</p>
+              <button
+                type="button"
+                onClick={() => setNewMessageOpen(true)}
+                className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+              >
+                Start a conversation
+              </button>
+            </>
+          )}
         </div>
       )}
+
+      <NewMessageModal
+        open={newMessageOpen}
+        onClose={() => setNewMessageOpen(false)}
+        onOpened={selectRoom}
+      />
+      <CreateChannelModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={selectRoom}
+      />
     </div>
   );
 };

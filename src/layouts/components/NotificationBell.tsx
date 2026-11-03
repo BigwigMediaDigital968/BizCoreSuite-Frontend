@@ -15,6 +15,7 @@ const ICONS: Record<string, string> = {
   LEAD_ASSIGNED: "assignment_ind",
   LEAD_REASSIGNED: "assignment_ind",
   DAILY_REPORT_REVIEWED: "assignment_turned_in",
+  CHAT_MESSAGE: "forum",
 };
 
 const timeAgo = (iso: string) => {
@@ -34,6 +35,7 @@ const timeAgo = (iso: string) => {
 const targetFor = (n: AppNotification): string | null => {
   if (!n.entityId) return null;
   if (n.entityType === "Lead") return `/leads/${n.entityId}${n.type === "LEAD_WHATSAPP_RECEIVED" ? "#whatsapp" : ""}`;
+  if (n.entityType === "ChatRoom") return `/chat?room=${n.entityId}`;
   return null;
 };
 

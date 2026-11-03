@@ -9,6 +9,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { usePendingLateCheckInCount } from "@/features/attendance/api/lateCheckInApi";
 import { useReportWindow } from "@/features/dailyReports";
 import { DAILY_REPORT_WINDOW_STATE } from "@/types/dailyReport";
+import { useChatUnreadTotal } from "@/features/chat/hooks/useChat";
 
 export interface NavChild {
   label: string;
@@ -49,7 +50,6 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Chat",
         path: ROUTES.chat,
         icon: "chat",
-        permissions: [PERMISSIONS.CHAT_VIEW],
       },
       {
         label: "Leads",
@@ -257,6 +257,8 @@ const Sidebar = () => {
       ? 1
       : 0;
 
+  const chatUnread = useChatUnreadTotal();
+
   const passesRoles = (roles?: Role[]) =>
     !roles?.length || (!!user?.role && roles.includes(user.role as Role));
 
@@ -309,6 +311,7 @@ const Sidebar = () => {
 
             return {
               ...item,
+              ...(item.path === ROUTES.chat ? { badgeCount: chatUnread } : {}),
               children: visibleChildren,
             };
           })
@@ -320,7 +323,7 @@ const Sidebar = () => {
         };
       })
       .filter((group) => group.items.length > 0);
-  }, [isLoading, hasAnyPermission, hasAllPermissions, pendingLateCount, dailyReportDue, user?.role]);
+  }, [isLoading, hasAnyPermission, hasAllPermissions, pendingLateCount, dailyReportDue, chatUnread, user?.role]);
 
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
     Leads: true,

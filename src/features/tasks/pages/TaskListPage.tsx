@@ -139,7 +139,7 @@ const TaskListPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-surface p-2 sm:p-2 lg:p-4 space-y-6">
+    <div className="min-h-screen bg-surface p-4 sm:p-6 lg:p-8 space-y-6">
       {/* --- TOP BANNER / HEADER --- */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>

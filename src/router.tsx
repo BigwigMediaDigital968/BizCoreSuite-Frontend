@@ -321,10 +321,8 @@ export const router = createBrowserRouter([
             ],
           },
 
-          {
-            element: <PermissionRoute permission={PERMISSIONS.CHAT_VIEW} />,
-            children: [{ path: ROUTES.chat, element: <ChatPage /> }],
-          },
+          // Open to every signed-in user; rooms are membership-scoped.
+          { path: ROUTES.chat, element: <ChatPage /> },
 
           /* Contests */
           {

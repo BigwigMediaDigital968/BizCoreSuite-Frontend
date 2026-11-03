@@ -216,9 +216,8 @@ export const PERMISSIONS = {
   DAILY_REPORT_REVIEW: "daily-report:review",
   DAILY_REPORT_EXPORT: "daily-report:export",
 
-  // Chat / Internal Communications
-  CHAT_VIEW: "chat:view",
-  CHAT_CREATE: "chat:create",
+  // Chat / Internal Communications (using chat needs no permission —
+  // access is per-room membership; manage = channels, members, DM switch)
   CHAT_MANAGE: "chat:manage",
 
   // Audit

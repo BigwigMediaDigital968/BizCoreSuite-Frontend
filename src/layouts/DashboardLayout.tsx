@@ -5,9 +5,13 @@ import { useSidebarStore } from "@/store/sidebar.store";
 import { ActiveContestPopup } from "@/features/contests/components/ActiveContestPopup";
 import { ActiveCallPopup } from "@/features/dialer/components/ActiveCallPopup";
 import { DailyReportReminder } from "@/features/dailyReports";
+import { useSocketConnection } from "@/hooks/useSocketConnection";
+import { useChatRealtime } from "@/features/chat/hooks/useChatRealtime";
 
 const DashboardLayout = () => {
   const collapsed = useSidebarStore((s) => s.collapsed);
+  useSocketConnection();
+  useChatRealtime();
 
   return (
     <div className="min-h-screen bg-background">
@@ -30,7 +34,7 @@ const DashboardLayout = () => {
           collapsed ? "lg:pl-20" : "lg:pl-64"
         }`}
       >
-        <div className="p-4 sm:p-6">
+        <div className="">
           <Outlet />
         </div>
       </main>
