@@ -12,6 +12,7 @@ import { useAuthStore } from "@/store/auth.store";
 import type { ChatMessage, ChatMessagePage, ChatRoom } from "@/types/chat";
 import {
   createChannel,
+  getChannelCandidates,
   getChatUsers,
   getMyRooms,
   getOrCreateDirectRoom,
@@ -26,6 +27,7 @@ export const chatKeys = {
   messages: (roomId: string) => ["chat", "messages", roomId] as const,
   users: (search: string) => ["chat", "users", search] as const,
   settings: (userId: string) => ["chat", "settings", userId] as const,
+  candidates: ["chat", "channel-candidates"] as const,
 };
 
 type MessagesData = InfiniteData<ChatMessagePage, string | undefined>;
@@ -139,6 +141,15 @@ export const useMarkRoomRead = () => {
   });
 };
 
+/** Everyone a head/admin can add to a new channel. */
+export const useChannelCandidates = (enabled = true) =>
+  useQuery({
+    queryKey: chatKeys.candidates,
+    queryFn: getChannelCandidates,
+    enabled,
+    staleTime: 60_000,
+  });
+
 export const useChatUsers = (search: string, enabled: boolean) =>
   useQuery({
     queryKey: chatKeys.users(search),
@@ -178,9 +189,8 @@ export const useCreateChannel = () => {
       );
       queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
     },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, "Failed to create channel"));
-    },
+    // No toast: the create page shows the reason next to the field it
+    // concerns (or its own toast), so the message isn't shown twice.
   });
 };
 

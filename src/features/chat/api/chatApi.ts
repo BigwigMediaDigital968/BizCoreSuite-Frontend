@@ -71,7 +71,19 @@ export const createChannel = async (payload: {
   name: string;
   type: ChannelType;
   branchId?: string;
+  /** The members (besides the creator). Omit to let the server pick by type. */
+  participants?: string[];
 }): Promise<ChatRoom> => {
   const res = await apiClient.post("/chat/channel", payload);
+  return res.data.data;
+};
+
+/** A person who can be added to a channel, with what the picker filters by. */
+export interface ChannelCandidate extends ChatParticipant {
+  branches: { _id: string; name: string }[];
+}
+
+export const getChannelCandidates = async (): Promise<ChannelCandidate[]> => {
+  const res = await apiClient.get("/chat/channel-candidates");
   return res.data.data;
 };
