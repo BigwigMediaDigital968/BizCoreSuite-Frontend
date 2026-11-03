@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { connectSocket } from "@/lib/socket";
 import { useAuthStore } from "@/store/auth.store";
 import type { ChatMessage, ChatRoom } from "@/types/chat";
+import { mentionsToPlainText } from "../utils/mentions";
 import {
   chatKeys,
   sortRoomsInCache,
@@ -45,7 +46,7 @@ export const useChatRealtime = () => {
       updateRoomInCache(queryClient, message.roomId, (room) => ({
         ...room,
         lastMessage: {
-          content: message.content,
+          content: mentionsToPlainText(message.content),
           senderId: message.senderId._id,
           createdAt: message.createdAt,
         },

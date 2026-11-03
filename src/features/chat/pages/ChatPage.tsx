@@ -1,8 +1,13 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { MessageSquarePlus, Plus, Search } from "lucide-react";
 import type { ChatMessage, ChatRoom } from "@/types/chat";
-import { useChatRooms, useMarkRoomRead } from "../hooks/useChat";
+import { ROUTES } from "@/config/routes";
+import {
+  useChatRooms,
+  useMarkRoomRead,
+  useOpenDirectRoom,
+} from "../hooks/useChat";
 import { useChatSocket } from "../hooks/useChatSocket";
 import CreateChannelModal from "../components/CreateChannelModal";
 import NewMessageModal from "../components/NewMessageModal";
@@ -45,20 +50,48 @@ export const ChatPage = () => {
     useChatRooms();
   const markRead = useMarkRoomRead();
 
-  // The open conversation lives in the URL (?room=) so notifications can
-  // link to it. Desktop falls back to the most recent room; on phones no
-  // selection means the room list is showing.
-  const [searchParams, setSearchParams] = useSearchParams();
-  const selectedRoomId = searchParams.get("room");
-  const activeRoom: ChatRoom | null =
-    rooms.find((r) => r._id === selectedRoomId) ??
-    (isDesktop ? rooms[0] : null) ??
-    null;
+  // The open conversation lives in the URL so it can be linked to:
+  //   /chat?room=<roomId>      any room (notifications use this)
+  //   /chat/dm/<userId>        that person's direct message (mentions use this)
+  // Desktop falls back to the most recent room; on phones no selection
+  // means the room list is showing.
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { userId: dmUserId } = useParams();
+  const dmRoom = dmUserId
+    ? rooms.find((r) => r.type === "DIRECT" && r.otherUser?._id === dmUserId)
+    : undefined;
+  // On a /chat/dm link whose room isn't in our list yet (first time talking).
+  const openingDm = !!dmUserId && !dmRoom;
+
+  const selectedRoomId = dmRoom?._id ?? searchParams.get("room");
+  const activeRoom: ChatRoom | null = openingDm
+    ? null
+    : (rooms.find((r) => r._id === selectedRoomId) ??
+      (isDesktop ? rooms[0] : null) ??
+      null);
   const showConversation = !!activeRoom && (isDesktop || !!selectedRoomId);
 
+  // Open or create the DM for /chat/dm/<userId>. The hook adds the new room
+  // to the list, which turns `dmRoom` into a match.
+  const { mutateAsync: openDirectRoom } = useOpenDirectRoom();
+  const openedDmFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!dmUserId || roomsLoading || dmRoom) return;
+    if (openedDmFor.current === dmUserId) return;
+    openedDmFor.current = dmUserId;
+
+    // Can't message yourself; the hook already toasts why other opens fail.
+    if (dmUserId === user?._id) {
+      navigate(ROUTES.chat, { replace: true });
+      return;
+    }
+    openDirectRoom(dmUserId).catch(() => navigate(ROUTES.chat, { replace: true }));
+  }, [dmUserId, dmRoom, roomsLoading, user?._id, openDirectRoom, navigate]);
+
   const selectRoom = (room: ChatRoom) =>
-    setSearchParams({ room: room._id }, { replace: !!selectedRoomId });
-  const goBack = () => setSearchParams({}, { replace: false });
+    navigate(`${ROUTES.chat}?room=${room._id}`, { replace: !!selectedRoomId });
+  const goBack = () => navigate(ROUTES.chat);
 
   const { sendMessage, discardMessage, emitTyping, typing } = useChatSocket(
     rooms.filter((r) => r.type !== "DIRECT").map((r) => r._id)
@@ -96,13 +129,15 @@ export const ChatPage = () => {
     ? rooms.filter((r) => roomTitle(r).toLowerCase().includes(query))
     : rooms;
 
+  const handleDraftChange = (value: string) =>
+    setDrafts((prev) => ({ ...prev, [activeRoom!._id]: value }));
+
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden border border-slate-200 bg-white shadow-sm">
       {/* Conversations */}
       <div
-        className={`w-full flex-col border-r border-slate-200 bg-slate-50 md:flex md:w-80 ${
-          showConversation ? "hidden" : "flex"
-        }`}
+        className={`w-full flex-col border-r border-slate-200 bg-slate-50 md:flex md:w-80 ${showConversation ? "hidden" : "flex"
+          }`}
       >
         <div className="flex items-center justify-between gap-2 border-b border-slate-200 p-4">
           <h2 className="text-lg font-bold text-slate-800">Internal Chat</h2>
@@ -177,9 +212,7 @@ export const ChatPage = () => {
           currentUserId={user?._id}
           typingName={typing[activeRoom!._id]}
           draft={drafts[activeRoom!._id] ?? ""}
-          onDraftChange={(value) =>
-            setDrafts((prev) => ({ ...prev, [activeRoom!._id]: value }))
-          }
+          onDraftChange={handleDraftChange}
           onSend={(content) => sendMessage(activeRoom!._id, content)}
           onRetry={(msg: ChatMessage) =>
             msg.clientId && sendMessage(msg.roomId, msg.content, msg.clientId)
@@ -192,7 +225,7 @@ export const ChatPage = () => {
         />
       ) : (
         <div className="hidden flex-1 flex-col items-center justify-center gap-3 text-center md:flex">
-          {roomsLoading ? (
+          {roomsLoading || openingDm ? (
             <p className="text-sm text-slate-400">Loading chats…</p>
           ) : (
             <>

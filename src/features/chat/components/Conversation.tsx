@@ -3,12 +3,17 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   type FormEvent,
   type KeyboardEvent,
 } from "react";
 import { AlertCircle, ArrowLeft, Hash, Lock, Send } from "lucide-react";
-import type { ChatMessage, ChatRoom } from "@/types/chat";
+import type { ChatMessage, ChatParticipant, ChatRoom } from "@/types/chat";
 import { useRoomMessages } from "../hooks/useChat";
+import MentionPopover, { mentionOptionId } from "./MentionPopover";
+import MessageContent from "./MessageContent";
+import { getTextareaCaretPosition } from "../utils/caret";
+import { toMentionTokens, type Mentionable } from "../utils/mentions";
 import {
   dayLabel,
   initials,
@@ -25,6 +30,25 @@ const GROUP_GAP_MS = 5 * 60 * 1000;
 const STICK_THRESHOLD_PX = 80;
 const LOAD_OLDER_THRESHOLD_PX = 60;
 const MAX_COMPOSER_HEIGHT_PX = 140;
+const MAX_MENTION_SUGGESTIONS = 6;
+const MENTION_POPOVER_WIDTH_PX = 288; // matches w-72 in MentionPopover
+const MENTION_EDGE_GAP_PX = 12;
+// `@` at the start or after whitespace, then the name typed so far. The
+// whitespace rule keeps emails like a@b.com from opening the popover.
+const MENTION_TRIGGER = /(^|\s)@([\w.\- ]{0,30})$/;
+
+/** The `@query` being typed right before the caret, if any. */
+interface MentionTrigger {
+  start: number; // index of the "@"
+  end: number; // caret position
+  query: string;
+}
+
+const findMentionTrigger = (value: string, caret: number): MentionTrigger | null => {
+  const match = MENTION_TRIGGER.exec(value.slice(0, caret));
+  if (!match) return null;
+  return { start: match.index + match[1].length, end: caret, query: match[2] };
+};
 
 interface ConversationProps {
   room: ChatRoom;
@@ -113,16 +137,131 @@ const Conversation = ({
     el.style.height = `${Math.min(el.scrollHeight, MAX_COMPOSER_HEIGHT_PX)}px`;
   }, [draft]);
 
+  // --- @mention picker (channels only; a DM has just one other person) ---
+  const [mention, setMention] = useState<MentionTrigger | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+
+  const mentionCandidates = useMemo<ChatParticipant[]>(() => {
+    if (!mention || isDirect) return [];
+    const q = mention.query.trim().toLowerCase();
+    return room.participants
+      .filter((p) => p._id !== currentUserId && p.name.toLowerCase().includes(q))
+      .slice(0, MAX_MENTION_SUGGESTIONS);
+  }, [mention, isDirect, room.participants, currentUserId]);
+
+  const mentionOpen = mentionCandidates.length > 0;
+  // TODO(debug): remove
+  console.log("[mention] render", {
+    trigger: mention,
+    participants: room.participants.map((p) => p.name),
+    currentUserId,
+    candidates: mentionCandidates.map((p) => p.name),
+    mentionOpen,
+  });
+  const activeMentionIndex = Math.min(mentionIndex, mentionCandidates.length - 1);
+
+  // Pin the popover just above the "@" being typed. Offsets are relative to
+  // the composer <form>, which is the popover's positioned parent.
+  const [mentionAnchor, setMentionAnchor] = useState({ left: 0, top: 0 });
+  const mentionStart = mention?.start;
+  useLayoutEffect(() => {
+    const el = composerRef.current;
+    const parent = el?.offsetParent as HTMLElement | null;
+    if (!el || !parent || !mentionOpen || mentionStart === undefined) return;
+
+    const caret = getTextareaCaretPosition(el, mentionStart);
+    const maxLeft = parent.clientWidth - MENTION_POPOVER_WIDTH_PX - MENTION_EDGE_GAP_PX;
+    setMentionAnchor({
+      left: Math.max(
+        MENTION_EDGE_GAP_PX,
+        Math.min(el.offsetLeft + caret.left, maxLeft)
+      ),
+      top: el.offsetTop + caret.top,
+    });
+  }, [mentionOpen, mentionStart, draft]);
+
+  const updateMention = (value: string, caret: number) => {
+    const next = isDirect ? null : findMentionTrigger(value, caret);
+    // TODO(debug): remove
+    console.log("[mention] updateMention", {
+      value,
+      caret,
+      roomType: room.type,
+      isDirect,
+      trigger: next,
+    });
+    setMention(next);
+    setMentionIndex(0);
+  };
+
+  // People chosen from the popover, so two members sharing a name still tag
+  // the right one. Names typed by hand are resolved from the member list.
+  const pickedMentions = useRef(new Map<string, Mentionable>());
+
+  const pickMention = (user: ChatParticipant) => {
+    if (!mention) return;
+    pickedMentions.current.set(user.name, { _id: user._id, name: user.name });
+    const inserted = `@${user.name} `;
+    onDraftChange(draft.slice(0, mention.start) + inserted + draft.slice(mention.end));
+    setMention(null);
+
+    // Put the caret right after the inserted name once React has re-rendered.
+    const caret = mention.start + inserted.length;
+    requestAnimationFrame(() => {
+      const el = composerRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(caret, caret);
+    });
+  };
+
   const submit = (e?: FormEvent) => {
     e?.preventDefault();
     const content = draft.trim();
     if (!content || readOnly) return;
     stickToBottom.current = true;
-    onSend(content);
+    setMention(null);
+    // Channels only: swap "@Name" for "@[Name](id)" so the server can store
+    // who was tagged. A DM has no mentions, so text is sent untouched.
+    onSend(
+      isDirect
+        ? content
+        : toMentionTokens(
+            content,
+            [...pickedMentions.current.values()],
+            room.participants.filter((p) => p._id !== currentUserId)
+          )
+    );
+    pickedMentions.current.clear();
     onDraftChange("");
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // The open picker owns these keys, so Enter picks instead of sending.
+    if (mentionOpen && !e.nativeEvent.isComposing) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const step = e.key === "ArrowDown" ? 1 : -1;
+        setMentionIndex(
+          (activeMentionIndex + step + mentionCandidates.length) %
+            mentionCandidates.length
+        );
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        pickMention(mentionCandidates[activeMentionIndex]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMention(null);
+        return;
+      }
+
+      console.log("draft", draft);
+    }
+
     // Enter sends; Shift+Enter adds a line. Ignore Enter while composing (IME).
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
@@ -256,7 +395,12 @@ const Conversation = ({
                     msg.status === "failed" ? "bg-red-50 text-red-900 ring-1 ring-red-300" : ""
                   }`}
                 >
-                  {msg.content}
+                  <MessageContent
+                    content={msg.content}
+                    members={room.participants}
+                    currentUserId={currentUserId}
+                    onDarkBubble={isMe && msg.status !== "failed"}
+                  />
                 </div>
                 {msg.status === "sending" && (
                   <span className="mt-0.5 text-[10px] text-slate-400">Sending…</span>
@@ -304,8 +448,17 @@ const Conversation = ({
       ) : (
         <form
           onSubmit={submit}
-          className="flex items-end gap-2 border-t border-slate-200 bg-white p-3 sm:gap-3 sm:p-4"
+          className="relative flex items-end gap-2 border-t border-slate-200 bg-white p-3 sm:gap-3 sm:p-4"
         >
+          {mentionOpen && (
+            <MentionPopover
+              candidates={mentionCandidates}
+              activeIndex={activeMentionIndex}
+              anchor={mentionAnchor}
+              onPick={pickMention}
+              onHover={setMentionIndex}
+            />
+          )}
           <label htmlFor="chat-composer" className="sr-only">
             Message {roomTitle(room)}
           </label>
@@ -315,9 +468,25 @@ const Conversation = ({
             rows={1}
             value={draft}
             maxLength={MAX_MESSAGE_LENGTH}
+            role="combobox"
+            aria-expanded={mentionOpen}
+            aria-controls={mentionOpen ? "mention-listbox" : undefined}
+            aria-activedescendant={
+              mentionOpen
+                ? mentionOptionId(mentionCandidates[activeMentionIndex]._id)
+                : undefined
+            }
             onChange={(e) => {
               onDraftChange(e.target.value);
+              updateMention(e.target.value, e.target.selectionStart);
               if (e.target.value) onTyping();
+            }}
+            onClick={(e) =>
+              updateMention(e.currentTarget.value, e.currentTarget.selectionStart)
+            }
+            onBlur={() => {
+              console.log("[mention] blur -> closing"); // TODO(debug): remove
+              setMention(null);
             }}
             onKeyDown={handleKeyDown}
             placeholder={`Message ${roomTitle(room)}`}

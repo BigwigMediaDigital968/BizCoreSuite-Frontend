@@ -40,6 +40,8 @@ export interface ChatMessage {
   roomId: string;
   senderId: ChatParticipant;
   content: string;
+  /** Ids of members tagged in `content` (validated by the server). */
+  mentions?: string[];
   createdAt: string;
   /** Set on the sender's own messages to match the optimistic copy. */
   clientId?: string;

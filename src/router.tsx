@@ -323,6 +323,8 @@ export const router = createBrowserRouter([
 
           // Open to every signed-in user; rooms are membership-scoped.
           { path: ROUTES.chat, element: <ChatPage /> },
+          // A person's direct message, e.g. from clicking an @mention.
+          { path: `${ROUTES.chat}/dm/:userId`, element: <ChatPage /> },
 
           /* Contests */
           {

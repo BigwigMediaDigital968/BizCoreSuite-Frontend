@@ -1,6 +1,7 @@
 import { Hash } from "lucide-react";
 import type { ChatRoom } from "@/types/chat";
 import { initials, listTimeLabel, roomTitle } from "../utils/format";
+import { mentionsToPlainText } from "../utils/mentions";
 
 interface RoomListProps {
   rooms: ChatRoom[];
@@ -22,7 +23,7 @@ const RoomButton = ({
 }) => {
   const unread = room.unreadCount > 0;
   const preview = room.lastMessage
-    ? `${room.lastMessage.senderId === currentUserId ? "You: " : ""}${room.lastMessage.content}`
+    ? `${room.lastMessage.senderId === currentUserId ? "You: " : ""}${mentionsToPlainText(room.lastMessage.content)}`
     : room.type === "DIRECT"
       ? "No messages yet"
       : "";
