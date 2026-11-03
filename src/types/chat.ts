@@ -11,6 +11,8 @@ export interface ChatLastMessage {
   content: string;
   senderId: string;
   createdAt: string;
+  /** An event line like "X created this channel", not typed by a person. */
+  isSystem?: boolean;
 }
 
 export interface ChatRoom {
@@ -20,6 +22,8 @@ export interface ChatRoom {
   participants: ChatParticipant[];
   branchId?: { _id: string; name: string };
   isArchived: boolean;
+  /** Id of the person who created the room. */
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
   lastMessage?: ChatLastMessage;
@@ -42,6 +46,8 @@ export interface ChatMessage {
   content: string;
   /** Ids of members tagged in `content` (validated by the server). */
   mentions?: string[];
+  /** SYSTEM = an event line ("X created this channel"). Missing = USER. */
+  kind?: "USER" | "SYSTEM";
   createdAt: string;
   /** Set on the sender's own messages to match the optimistic copy. */
   clientId?: string;

@@ -16,6 +16,7 @@ const ICONS: Record<string, string> = {
   LEAD_REASSIGNED: "assignment_ind",
   DAILY_REPORT_REVIEWED: "assignment_turned_in",
   CHAT_MESSAGE: "forum",
+  CHAT_CHANNEL_ADDED: "group_add",
 };
 
 const timeAgo = (iso: string) => {

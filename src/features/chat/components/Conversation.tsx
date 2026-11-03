@@ -68,6 +68,7 @@ const startsGroup = (messages: ChatMessage[], i: number) => {
   const prev = messages[i - 1];
   const cur = messages[i];
   return (
+    prev.kind === "SYSTEM" ||
     prev.senderId._id !== cur.senderId._id ||
     !isSameDay(prev.createdAt, cur.createdAt) ||
     new Date(cur.createdAt).getTime() - new Date(prev.createdAt).getTime() >
@@ -89,6 +90,7 @@ const Conversation = ({
 }: ConversationProps) => {
   const isDirect = room.type === "DIRECT";
   const readOnly = isDirect && !!room.readOnly;
+  const creatorName = room.participants.find((p) => p._id === room.createdBy)?.name;
 
   const { data, isLoading, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
     useRoomMessages(room._id);
@@ -342,7 +344,7 @@ const Conversation = ({
             Couldn't load messages. Reopen the conversation to try again.
           </p>
         )}
-        {!isLoading && !isError && messages.length === 0 && (
+        {!isLoading && !isError && messages.length === 0 && isDirect && (
           <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
             <p className="text-sm font-medium text-slate-600">No messages yet</p>
             <p className="text-xs text-slate-400">
@@ -353,22 +355,71 @@ const Conversation = ({
           </div>
         )}
 
+        {/* Start of a channel: say what it is and who made it. */}
+        {!isLoading && !isError && !hasNextPage && !isDirect && (
+          <div className="mb-2 flex flex-col items-center gap-1 px-4 pb-2 pt-4 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-100 text-purple-700">
+              <Hash className="h-6 w-6" aria-hidden="true" />
+            </span>
+            <h4 className="mt-1 text-base font-semibold text-slate-900">
+              Welcome to #{roomTitle(room)}
+            </h4>
+            <p className="max-w-sm text-sm text-slate-600">
+              {room.createdBy === currentUserId
+                ? "You created this channel"
+                : creatorName
+                  ? `${creatorName} added you to #${roomTitle(room)}`
+                  : `You were added to #${roomTitle(room)}`}
+            </p>
+            {room.createdAt && (
+              <p className="text-xs text-slate-500">
+                {new Date(room.createdAt).toLocaleDateString([], {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </p>
+            )}
+          </div>
+        )}
+
         {messages.map((msg, i) => {
+          // The welcome block above already says who created/added you, so
+          // the channel's first event line isn't repeated in the thread.
+          const introShown = !hasNextPage && !isDirect;
+          const firstIsIntro = introShown && messages[0]?.kind === "SYSTEM";
+          if (i === 0 && firstIsIntro) return null;
+
           const isMe = msg.senderId._id === currentUserId;
-          const newDay = i === 0 || !isSameDay(messages[i - 1].createdAt, msg.createdAt);
+          const newDay =
+            i === 0 ||
+            (i === 1 && firstIsIntro) ||
+            !isSameDay(messages[i - 1].createdAt, msg.createdAt);
           const header = startsGroup(messages, i);
+
+          const daySeparator = newDay && (
+            <div className="my-4 flex items-center gap-3" role="separator">
+              <span className="h-px flex-1 bg-slate-200" />
+              <span className="text-[11px] font-medium text-slate-500">
+                {dayLabel(msg.createdAt)}
+              </span>
+              <span className="h-px flex-1 bg-slate-200" />
+            </div>
+          );
+
+          // Event lines ("X created this channel") sit centered, not in a bubble.
+          if (msg.kind === "SYSTEM") {
+            return (
+              <Fragment key={msg._id}>
+                {daySeparator}
+                <p className="my-3 text-center text-xs text-slate-500">{msg.content}</p>
+              </Fragment>
+            );
+          }
 
           return (
             <Fragment key={msg._id}>
-              {newDay && (
-                <div className="my-4 flex items-center gap-3" role="separator">
-                  <span className="h-px flex-1 bg-slate-200" />
-                  <span className="text-[11px] font-medium text-slate-500">
-                    {dayLabel(msg.createdAt)}
-                  </span>
-                  <span className="h-px flex-1 bg-slate-200" />
-                </div>
-              )}
+              {daySeparator}
               <div
                 className={`flex flex-col ${isMe ? "items-end" : "items-start"} ${
                   header ? "mt-3" : "mt-0.5"

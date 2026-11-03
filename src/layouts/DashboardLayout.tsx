@@ -7,11 +7,13 @@ import { ActiveCallPopup } from "@/features/dialer/components/ActiveCallPopup";
 import { DailyReportReminder } from "@/features/dailyReports";
 import { useSocketConnection } from "@/hooks/useSocketConnection";
 import { useChatRealtime } from "@/features/chat/hooks/useChatRealtime";
+import { useNotificationRealtime } from "@/hooks/useNotificationRealtime";
 
 const DashboardLayout = () => {
   const collapsed = useSidebarStore((s) => s.collapsed);
   useSocketConnection();
   useChatRealtime();
+  useNotificationRealtime();
 
   return (
     <div className="min-h-screen bg-background">

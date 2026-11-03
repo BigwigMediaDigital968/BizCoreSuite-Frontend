@@ -23,7 +23,11 @@ const RoomButton = ({
 }) => {
   const unread = room.unreadCount > 0;
   const preview = room.lastMessage
-    ? `${room.lastMessage.senderId === currentUserId ? "You: " : ""}${mentionsToPlainText(room.lastMessage.content)}`
+    ? `${
+        room.lastMessage.senderId === currentUserId && !room.lastMessage.isSystem
+          ? "You: "
+          : ""
+      }${mentionsToPlainText(room.lastMessage.content)}`
     : room.type === "DIRECT"
       ? "No messages yet"
       : "";
