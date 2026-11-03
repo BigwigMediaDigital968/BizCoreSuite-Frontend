@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   ChevronRight,
   Hash,
-  Loader2,
   Lock,
   LogOut,
   Search,
@@ -14,7 +13,7 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
-import Modal from "@/components/ui/Modal";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import type { ChatRoom } from "@/types/chat";
 import type { RoomPerson } from "../api/chatApi";
 import {
@@ -78,59 +77,6 @@ const SharedMedia = () => (
     </div>
     <p className="mt-2 text-xs text-slate-500">Nothing shared yet.</p>
   </Section>
-);
-
-/** Named confirmation: says exactly what will happen, Cancel is focused. */
-const ConfirmDialog = ({
-  open,
-  title,
-  description,
-  confirmLabel,
-  pending,
-  onConfirm,
-  onCancel,
-}: {
-  open: boolean;
-  title: string;
-  description: string;
-  confirmLabel: string;
-  pending: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) => (
-  <Modal
-    open={open}
-    onClose={pending ? () => {} : onCancel}
-    title={title}
-    description={description}
-    size="sm"
-    footer={
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          autoFocus
-          onClick={onCancel}
-          disabled={pending}
-          className="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 disabled:opacity-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          aria-disabled={pending}
-          className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 aria-disabled:opacity-70"
-        >
-          {pending && (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-          )}
-          {confirmLabel}
-        </button>
-      </div>
-    }
-  >
-    {null}
-  </Modal>
 );
 
 /**
@@ -575,9 +521,10 @@ const ChatInfoPanel = ({
           title={`Leave #${title}?`}
           description="You'll stop receiving its messages, and can only rejoin if an admin adds you back."
           confirmLabel="Leave channel"
-          pending={leave.isPending}
+          tone="danger"
+          isLoading={leave.isPending}
           onConfirm={handleLeave}
-          onCancel={() => setConfirmLeave(false)}
+          onClose={() => setConfirmLeave(false)}
         />
         <ConfirmDialog
           open={!!removing}
@@ -588,9 +535,10 @@ const ChatInfoPanel = ({
           }
           description="They'll lose access to the channel and its history."
           confirmLabel="Remove"
-          pending={removeMember.isPending}
+          tone="danger"
+          isLoading={removeMember.isPending}
           onConfirm={handleRemove}
-          onCancel={() => setRemoving(null)}
+          onClose={() => setRemoving(null)}
         />
         <AddMembersModal
           open={addOpen}

@@ -19,6 +19,7 @@ import {
   getOrCreateDirectRoom,
   getRoomInfo,
   getRoomMessages,
+  getUserChannelAccess,
   getUserChatSettings,
   leaveRoom,
   markRoomRead,
@@ -33,6 +34,8 @@ export const chatKeys = {
   settings: (userId: string) => ["chat", "settings", userId] as const,
   candidates: ["chat", "channel-candidates"] as const,
   info: (roomId: string) => ["chat", "info", roomId] as const,
+  channelAccess: (userId: string) =>
+    ["chat", "channel-access", userId] as const,
 };
 
 type MessagesData = InfiniteData<ChatMessagePage, string | undefined>;
@@ -285,4 +288,43 @@ export const useRemoveRoomMember = (roomId: string) => {
       toast.error(getErrorMessage(error, "Couldn't remove that person"));
     },
   });
+};
+
+// ---------------------------------------------------------------------------
+// Access tab on the employee profile (head / admin)
+// ---------------------------------------------------------------------------
+
+export const useUserChannelAccess = (userId: string | undefined) =>
+  useQuery({
+    queryKey: chatKeys.channelAccess(userId ?? ""),
+    queryFn: () => getUserChannelAccess(userId as string),
+    enabled: !!userId,
+  });
+
+/** Add a person to, or remove them from, a channel from their profile. */
+export const useChangeChannelAccess = (userId: string) => {
+  const queryClient = useQueryClient();
+  const refresh = (roomId: string) => {
+    queryClient.invalidateQueries({ queryKey: chatKeys.channelAccess(userId) });
+    queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
+    queryClient.invalidateQueries({ queryKey: chatKeys.info(roomId) });
+  };
+
+  const add = useMutation({
+    mutationFn: (roomId: string) => addRoomMembers(roomId, [userId]),
+    onSuccess: (_data, roomId) => refresh(roomId),
+    onError: (error) => {
+      toast.error(getErrorMessage(error, "Couldn't add them to the channel"));
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: (roomId: string) => removeRoomMember(roomId, userId),
+    onSuccess: (_data, roomId) => refresh(roomId),
+    onError: (error) => {
+      toast.error(getErrorMessage(error, "Couldn't remove them from the channel"));
+    },
+  });
+
+  return { add, remove };
 };

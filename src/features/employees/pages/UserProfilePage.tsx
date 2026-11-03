@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router";
 import { Can } from "@/components/Auth/Can";
 import { useEmployeeProfileByUserQuery, useEmployeeQuery } from "../hooks/useEmployees";
 import ResetPasswordButton from "../components/ResetPasswordButton";
-import DirectMessageToggle from "@/features/chat/components/DirectMessageToggle";
+import AccessTab from "../access/AccessTab";
+import { ACCESS_PERMISSIONS } from "../access/accessSections";
 import { PERMISSIONS, ROLE_LABELS } from "@/types/auth";
 
 const getInitials = (name?: string) =>
@@ -22,7 +23,7 @@ const UserProfilePage = () => {
   const { id } = useParams<{ id: string }>();
 
   const [activeTab, setActiveTab] = useState<
-    "overview" | "personal" | "documents" | "payroll"
+    "overview" | "personal" | "documents" | "payroll" | "access"
   >("overview");
 
   // The HR profile (EmployeeProfile) — optional, may not exist yet.
@@ -95,9 +96,6 @@ const UserProfilePage = () => {
           </button>
 
           <div className="flex items-center gap-3">
-            <Can permission={PERMISSIONS.CHAT_MANAGE}>
-              <DirectMessageToggle userId={id as string} />
-            </Can>
             <ResetPasswordButton
               userId={user._id}
               userName={user.name}
@@ -169,6 +167,15 @@ const UserProfilePage = () => {
           </div>
         </div>
 
+        {/* Access can be managed even before an HR profile exists. */}
+        <Can permission={ACCESS_PERMISSIONS}>
+          <AccessTab
+            userId={id as string}
+            userName={user.name}
+            targetRole={user.role}
+          />
+        </Can>
+
         {/* Empty state — HR profile not created yet */}
         <div className="rounded-2xl border border-dashed border-outline-variant/50 bg-surface-container-lowest p-8 sm:p-10 text-center space-y-3">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -218,9 +225,6 @@ const UserProfilePage = () => {
         </button>
 
         <div className="flex items-center gap-3">
-          <Can permission={PERMISSIONS.CHAT_MANAGE}>
-            <DirectMessageToggle userId={id as string} />
-          </Can>
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${profile?.employmentStatus === "active"
               ? "bg-emerald-500/10 text-emerald-700"
@@ -302,6 +306,7 @@ const UserProfilePage = () => {
             { id: "personal", label: "Personal & Emergency", icon: "person", permission: [PERMISSIONS.USER_VIEW, PERMISSIONS.EMPLOYEE_VIEW] },
             { id: "documents", label: `Documents (${profile?.documents?.length || 0})`, icon: "folder_open", permission: [PERMISSIONS.EMPLOYEE_DOCUMENT_VIEW] },
             { id: "payroll", label: "Salary & Banking", icon: "payments", permission: [PERMISSIONS.EMPLOYEE_SALARY_VIEW] },
+            { id: "access", label: "Access", icon: "admin_panel_settings", permission: ACCESS_PERMISSIONS },
           ].map((tab) => (
             <Can permission={tab.permission} key={tab.id}>
               <button
@@ -320,6 +325,14 @@ const UserProfilePage = () => {
       </div>
 
       {/* Tab Contents */}
+      {activeTab === "access" && (
+        <AccessTab
+          userId={id as string}
+          userName={user?.name ?? userObj?.name ?? "this person"}
+          targetRole={user?.role ?? userObj?.role ?? "employee"}
+        />
+      )}
+
       {activeTab === "overview" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Employment Details */}

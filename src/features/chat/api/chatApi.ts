@@ -127,3 +127,28 @@ export const removeRoomMember = async (
 ): Promise<void> => {
   await apiClient.delete(`/chat/rooms/${roomId}/members/${userId}`);
 };
+
+/** A channel as the Access tab shows it for one person. */
+export interface ChannelAccessItem {
+  _id: string;
+  name?: string;
+  type: RoomType;
+  branch?: { _id: string; name: string };
+  memberCount: number;
+  /** The person being viewed created this channel. */
+  isCreator: boolean;
+}
+
+export interface UserChannelAccess {
+  /** Channels the person is in. */
+  member: ChannelAccessItem[];
+  /** Channels they could be added to. */
+  available: ChannelAccessItem[];
+}
+
+export const getUserChannelAccess = async (
+  userId: string
+): Promise<UserChannelAccess> => {
+  const res = await apiClient.get(`/chat/users/${userId}/channel-access`);
+  return res.data.data;
+};
