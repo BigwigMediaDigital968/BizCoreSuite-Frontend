@@ -65,8 +65,11 @@ export const useChatRealtime = () => {
       );
     };
 
-    const refreshRooms = () =>
+    const refreshRooms = () => {
       queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
+      // Membership changed: an open info panel should show the new list.
+      queryClient.invalidateQueries({ queryKey: ["chat", "info"] });
+    };
 
     // After a reconnect, re-sync whatever was missed while offline.
     let hasConnected = socket.connected;

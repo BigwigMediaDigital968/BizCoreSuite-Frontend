@@ -1,6 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/services/queryClient";
 import { Toaster } from "react-hot-toast"
+import { MotionConfig } from "framer-motion";
 
 type Props = {
   children: React.ReactNode;
@@ -9,6 +10,9 @@ type Props = {
 export default function Providers({ children }: Props) {
   return (
     <QueryClientProvider client={queryClient}>
+      {/* Honour the OS "reduce motion" setting everywhere: movement is dropped,
+          opacity changes stay. */}
+      <MotionConfig reducedMotion="user">
       <Toaster
         position="bottom-right"
         reverseOrder={false}
@@ -43,6 +47,7 @@ export default function Providers({ children }: Props) {
         }}
       />
       {children}
+      </MotionConfig>
     </QueryClientProvider>
   );
 }

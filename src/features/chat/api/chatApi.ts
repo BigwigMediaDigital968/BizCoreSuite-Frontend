@@ -87,3 +87,43 @@ export const getChannelCandidates = async (): Promise<ChannelCandidate[]> => {
   const res = await apiClient.get("/chat/channel-candidates");
   return res.data.data;
 };
+
+/** A person in a room's info panel, with where they work. */
+export interface RoomPerson extends ChatParticipant {
+  isActive: boolean;
+  branches: { _id: string; name: string }[];
+}
+
+export interface RoomInfo {
+  _id: string;
+  name?: string;
+  type: RoomType;
+  createdBy?: string;
+  createdAt: string;
+  branch?: { _id: string; name: string };
+  participants: RoomPerson[];
+}
+
+export const getRoomInfo = async (roomId: string): Promise<RoomInfo> => {
+  const res = await apiClient.get(`/chat/rooms/${roomId}/info`);
+  return res.data.data;
+};
+
+export const leaveRoom = async (roomId: string): Promise<void> => {
+  await apiClient.post(`/chat/rooms/${roomId}/leave`);
+};
+
+export const addRoomMembers = async (
+  roomId: string,
+  userIds: string[]
+): Promise<{ added: number }> => {
+  const res = await apiClient.post(`/chat/rooms/${roomId}/members`, { userIds });
+  return res.data.data;
+};
+
+export const removeRoomMember = async (
+  roomId: string,
+  userId: string
+): Promise<void> => {
+  await apiClient.delete(`/chat/rooms/${roomId}/members/${userId}`);
+};

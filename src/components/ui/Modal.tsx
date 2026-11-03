@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 interface ModalProps {
   open: boolean;
@@ -28,6 +29,36 @@ const SIZE_CLASSES: Record<NonNullable<ModalProps["size"]>, string> = {
   lg: "max-w-3xl",
 };
 
+// Strong ease-out: starts fast so the dialog feels instant, then settles.
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
+
+// Enter is a little slower than exit: the user is watching it arrive, but
+// has already decided by the time it leaves. Only opacity and transform
+// move. Variants are shared by the backdrop and the dialog so the exit
+// plays together and AnimatePresence waits for it.
+const BACKDROP_VARIANTS = {
+  hidden: { opacity: 0, transition: { duration: 0.14, ease: EASE_OUT } },
+  visible: { opacity: 1, transition: { duration: 0.2, ease: EASE_OUT } },
+};
+const DIALOG_VARIANTS = {
+  hidden: {
+    opacity: 0,
+    transform: "scale(0.96) translateY(8px)",
+    transition: { duration: 0.14, ease: EASE_OUT },
+  },
+  visible: {
+    opacity: 1,
+    transform: "scale(1) translateY(0px)",
+    transition: { duration: 0.2, ease: EASE_OUT },
+  },
+};
+
+// Reduced motion: keep the fade (it explains what changed), drop the movement.
+const DIALOG_VARIANTS_REDUCED = {
+  hidden: { opacity: 0, transition: { duration: 0.1 } },
+  visible: { opacity: 1, transition: { duration: 0.15 } },
+};
+
 const Modal = ({
   open,
   onClose,
@@ -38,6 +69,7 @@ const Modal = ({
   size = "md",
   align = "center",
 }: ModalProps) => {
+  const reduceMotion = useReducedMotion();
   const dialogRef = useRef<HTMLDivElement>(null);
   // Callers pass inline handlers. Reading the latest through a ref keeps the
   // effect below tied to `open` only, so a re-render never moves focus.
@@ -107,86 +139,102 @@ const Modal = ({
     };
   }, [open]);
 
-  if (!open) return null;
-
   // Rendered through a portal: any ancestor with a transform, filter or
   // backdrop-filter (e.g. the blurred floating action bars) becomes the
   // containing block for `position: fixed`, which would clip the dialog to
   // that element's box instead of the viewport.
   return createPortal(
-    <div className="fixed inset-0 z-[100] overflow-y-auto">
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-        aria-hidden="true"
-      />
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="modal"
+          className="fixed inset-0 z-[100] overflow-y-auto"
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+        >
+          <motion.div
+            variants={BACKDROP_VARIANTS}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+            aria-hidden="true"
+          />
 
-      {/* `min-h-full` + centering inside the scroll area: a dialog taller than
+          {/* `min-h-full` + centering inside the scroll area: a dialog taller than
           the screen grows the area instead of having its top cut off. A press
           on the empty margin (not a text-selection drag that ends there)
           closes it. */}
-      <div
-        className={`relative flex min-h-full items-start justify-center p-4 ${
-          align === "center" ? "sm:items-center" : "sm:pt-[6vh]"
-        }`}
-        onMouseDown={(e) => {
-          if (e.target === e.currentTarget) onClose();
-        }}
-      >
-        <div
-          ref={dialogRef}
-          tabIndex={-1}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-title"
-          className={`relative w-full focus:outline-none ${SIZE_CLASSES[size]} rounded-2xl border border-outline-variant/30 bg-surface-container-lowest shadow-2xl ${
-            footer
-              ? `flex flex-col ${
-                  // Leave room for the top offset so the bottom edge stays on screen.
-                  align === "top"
-                    ? "max-h-[calc(94dvh-1rem)]"
-                    : "max-h-[calc(100dvh-2rem)]"
-                }`
-              : "my-4"
-          }`}
-        >
-          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-outline-variant/20 p-5">
-            <div className="space-y-0.5">
-              <h2
-                id="modal-title"
-                className="font-headline-sm text-base font-bold text-on-surface"
-              >
-                {title}
-              </h2>
-              {description && (
-                <p className="font-body-sm text-xs text-on-surface-variant">
-                  {description}
-                </p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close dialog"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"
-            >
-              <span className="material-symbols-outlined text-xl">close</span>
-            </button>
-          </div>
-
           <div
-            className={footer ? "min-h-0 flex-1 overflow-y-auto p-5" : "p-5"}
+            className={`relative flex min-h-full items-start justify-center p-4 ${
+              align === "center" ? "sm:items-center" : "sm:pt-[6vh]"
+            }`}
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) onClose();
+            }}
           >
-            {children}
-          </div>
+            <motion.div
+              ref={dialogRef}
+              variants={
+                reduceMotion ? DIALOG_VARIANTS_REDUCED : DIALOG_VARIANTS
+              }
+              tabIndex={-1}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="modal-title"
+              className={`relative w-full focus:outline-none ${SIZE_CLASSES[size]} rounded-2xl border border-outline-variant/30 bg-surface-container-lowest shadow-2xl ${
+                footer
+                  ? `flex flex-col ${
+                      // Leave room for the top offset so the bottom edge stays on screen.
+                      align === "top"
+                        ? "max-h-[calc(94dvh-1rem)]"
+                        : "max-h-[calc(100dvh-2rem)]"
+                    }`
+                  : "my-4"
+              }`}
+            >
+              <div className="flex shrink-0 items-start justify-between gap-4 border-b border-outline-variant/20 p-5">
+                <div className="space-y-0.5">
+                  <h2
+                    id="modal-title"
+                    className="font-headline-sm text-base font-bold text-on-surface"
+                  >
+                    {title}
+                  </h2>
+                  {description && (
+                    <p className="font-body-sm text-xs text-on-surface-variant">
+                      {description}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close dialog"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"
+                >
+                  <span className="material-symbols-outlined text-xl">
+                    close
+                  </span>
+                </button>
+              </div>
 
-          {footer && (
-            <div className="shrink-0 rounded-b-2xl border-t border-outline-variant/20 bg-surface-container-lowest px-5 py-3">
-              {footer}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>,
+              <div
+                className={
+                  footer ? "min-h-0 flex-1 overflow-y-auto p-5" : "p-5"
+                }
+              >
+                {children}
+              </div>
+
+              {footer && (
+                <div className="shrink-0 rounded-b-2xl border-t border-outline-variant/20 bg-surface-container-lowest px-5 py-3">
+                  {footer}
+                </div>
+              )}
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
     document.body,
   );
 };

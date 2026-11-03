@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
+import { AnimatePresence } from "framer-motion";
 import { MessageSquarePlus, Plus, Search } from "lucide-react";
 import type { ChatMessage, ChatRoom } from "@/types/chat";
 import { ROUTES } from "@/config/routes";
@@ -9,6 +10,7 @@ import {
   useOpenDirectRoom,
 } from "../hooks/useChat";
 import { useChatSocket } from "../hooks/useChatSocket";
+import ChatInfoPanel from "../components/ChatInfoPanel";
 import CreateChannelModal from "../components/CreateChannelModal";
 import NewMessageModal from "../components/NewMessageModal";
 import RoomList from "../components/RoomList";
@@ -42,6 +44,8 @@ export const ChatPage = () => {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [newMessageOpen, setNewMessageOpen] = useState(false);
+  // WhatsApp-style profile of the open conversation.
+  const [infoOpen, setInfoOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   // Unsent text per conversation, kept while switching rooms.
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -105,6 +109,11 @@ export const ChatPage = () => {
     return () => setActiveRoomId(null);
   }, [visibleRoomId, setActiveRoomId]);
 
+  // The panel describes one conversation; close it when you switch away.
+  useEffect(() => {
+    setInfoOpen(false);
+  }, [visibleRoomId]);
+
   // Mark the open conversation read while the tab is visible.
   const activeUnread = showConversation ? activeRoom!.unreadCount : 0;
   const { mutate: markRoomRead } = markRead;
@@ -147,7 +156,7 @@ export const ChatPage = () => {
               onClick={() => setNewMessageOpen(true)}
               aria-label="New message"
               title="New message"
-              className="rounded-lg bg-purple-600 p-1.5 text-white transition hover:bg-purple-700"
+              className="rounded-lg bg-purple-600 p-1.5 text-white transition-colors hover:bg-purple-700"
             >
               <MessageSquarePlus className="h-4 w-4" />
             </button>
@@ -157,7 +166,7 @@ export const ChatPage = () => {
                 onClick={() => setCreateOpen(true)}
                 aria-label="Create channel"
                 title="Create channel"
-                className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 transition hover:bg-slate-100"
+                className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 transition-colors hover:bg-slate-100"
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -222,6 +231,8 @@ export const ChatPage = () => {
           }
           onTyping={() => emitTyping(activeRoom!._id)}
           onBack={goBack}
+          onOpenInfo={() => setInfoOpen((open) => !open)}
+          infoOpen={infoOpen}
         />
       ) : (
         <div className="hidden flex-1 flex-col items-center justify-center gap-3 text-center md:flex">
@@ -241,6 +252,26 @@ export const ChatPage = () => {
           )}
         </div>
       )}
+
+      <AnimatePresence>
+      {showConversation && infoOpen && (
+        <ChatInfoPanel
+          // Siblings share one key space: this must differ from the
+          // Conversation's key (the same room id) or React mixes them up.
+          key={`info-${activeRoom!._id}`}
+          room={activeRoom!}
+          currentUserId={user?._id}
+          canManage={canManageChat}
+          canViewProfiles={hasPermission(PERMISSIONS.USER_VIEW)}
+          onClose={() => setInfoOpen(false)}
+          onLeft={() => {
+            setInfoOpen(false);
+            navigate(ROUTES.chat);
+          }}
+          isDesktop={isDesktop}
+        />
+      )}
+      </AnimatePresence>
 
       <NewMessageModal
         open={newMessageOpen}

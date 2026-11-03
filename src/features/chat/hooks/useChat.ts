@@ -11,14 +11,18 @@ import { getErrorMessage } from "@/utils/getErrorMessage";
 import { useAuthStore } from "@/store/auth.store";
 import type { ChatMessage, ChatMessagePage, ChatRoom } from "@/types/chat";
 import {
+  addRoomMembers,
   createChannel,
   getChannelCandidates,
   getChatUsers,
   getMyRooms,
   getOrCreateDirectRoom,
+  getRoomInfo,
   getRoomMessages,
   getUserChatSettings,
+  leaveRoom,
   markRoomRead,
+  removeRoomMember,
   updateUserChatSettings,
 } from "../api/chatApi";
 
@@ -28,6 +32,7 @@ export const chatKeys = {
   users: (search: string) => ["chat", "users", search] as const,
   settings: (userId: string) => ["chat", "settings", userId] as const,
   candidates: ["chat", "channel-candidates"] as const,
+  info: (roomId: string) => ["chat", "info", roomId] as const,
 };
 
 type MessagesData = InfiniteData<ChatMessagePage, string | undefined>;
@@ -217,6 +222,67 @@ export const useUpdateUserChatSettings = (userId: string) => {
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, "Couldn't update direct messages"));
+    },
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Room info panel
+// ---------------------------------------------------------------------------
+
+export const useRoomInfo = (roomId: string | null) =>
+  useQuery({
+    queryKey: chatKeys.info(roomId ?? ""),
+    queryFn: () => getRoomInfo(roomId as string),
+    enabled: !!roomId,
+    staleTime: 30_000,
+  });
+
+/** Anything that changes who is in a room refreshes the list and the panel. */
+const useRefreshRoom = () => {
+  const queryClient = useQueryClient();
+  return (roomId: string) => {
+    queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
+    queryClient.invalidateQueries({ queryKey: chatKeys.info(roomId) });
+  };
+};
+
+export const useLeaveRoom = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: leaveRoom,
+    onSuccess: (_data, roomId) => {
+      // Drop it from the list right away; the refetch confirms.
+      queryClient.setQueryData<ChatRoom[]>(chatKeys.rooms, (prev) =>
+        prev?.filter((r) => r._id !== roomId)
+      );
+      queryClient.removeQueries({ queryKey: chatKeys.messages(roomId) });
+      queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, "Couldn't leave the channel"));
+    },
+  });
+};
+
+export const useAddRoomMembers = (roomId: string) => {
+  const refresh = useRefreshRoom();
+  return useMutation({
+    mutationFn: (userIds: string[]) => addRoomMembers(roomId, userIds),
+    onSuccess: () => refresh(roomId),
+    onError: (error) => {
+      toast.error(getErrorMessage(error, "Couldn't add people"));
+    },
+  });
+};
+
+export const useRemoveRoomMember = (roomId: string) => {
+  const refresh = useRefreshRoom();
+  return useMutation({
+    mutationFn: (userId: string) => removeRoomMember(roomId, userId),
+    onSuccess: () => refresh(roomId),
+    onError: (error) => {
+      toast.error(getErrorMessage(error, "Couldn't remove that person"));
     },
   });
 };

@@ -22,7 +22,10 @@ const Stepper = ({ steps, current, onStepClick }: StepperProps) => (
         const status = done ? "completed" : active ? "current" : "upcoming";
 
         return (
-          <li key={label} className={`flex items-center ${i < steps.length - 1 ? "flex-1" : ""}`}>
+          <li
+            key={label}
+            className={`flex items-center ${i < steps.length - 1 ? "flex-1" : ""}`}
+          >
             <button
               type="button"
               disabled={!done}
@@ -45,7 +48,11 @@ const Stepper = ({ steps, current, onStepClick }: StepperProps) => (
               <span className="sr-only">{`Step ${i + 1} of ${steps.length}, ${status}: `}</span>
               <span
                 className={`text-sm font-medium ${active ? "" : "hidden sm:inline"} ${
-                  active ? "text-slate-900" : done ? "text-purple-700" : "text-slate-500"
+                  active
+                    ? "text-slate-900"
+                    : done
+                      ? "text-purple-700"
+                      : "text-slate-500"
                 }`}
               >
                 {label}

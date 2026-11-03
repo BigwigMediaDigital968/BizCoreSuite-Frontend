@@ -1,7 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { isAxiosError } from "axios";
 import toast from "react-hot-toast";
-import { Building2, GitBranch, Loader2, Users, type LucideIcon } from "lucide-react";
+import {
+  Building2,
+  GitBranch,
+  Loader2,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import Stepper from "@/components/ui/Stepper";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,7 +48,8 @@ const fieldClass = (invalid: boolean) =>
       : "border-slate-300 focus-visible:ring-purple-500"
   }`;
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const plural = (n: number, one: string, many: string) =>
+  `${n} ${n === 1 ? one : many}`;
 
 interface CreateChannelModalProps {
   open: boolean;
@@ -42,22 +57,35 @@ interface CreateChannelModalProps {
   onCreated: (room: ChatRoom) => void;
 }
 
-const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProps) => {
+const CreateChannelModal = ({
+  open,
+  onClose,
+  onCreated,
+}: CreateChannelModalProps) => {
   const { user } = useAuth();
 
-  const { data: candidates = [], isLoading, isError, refetch } = useChannelCandidates(open);
+  const {
+    data: candidates = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useChannelCandidates(open);
   const { data: branches = [] } = useBranchesQuery();
   const createChannel = useCreateChannel();
 
   // You're added automatically, so you aren't in the list.
   const people = useMemo(
     () => candidates.filter((c) => c._id !== user?._id),
-    [candidates, user?._id]
+    [candidates, user?._id],
   );
-  const activeBranches = useMemo(() => branches.filter((b) => b.isActive), [branches]);
+  const activeBranches = useMemo(
+    () => branches.filter((b) => b.isActive),
+    [branches],
+  );
   const branchSize = useCallback(
-    (id: string) => people.filter((p) => p.branches.some((b) => b._id === id)).length,
-    [people]
+    (id: string) =>
+      people.filter((p) => p.branches.some((b) => b._id === id)).length,
+    [people],
   );
 
   const [step, setStep] = useState(0);
@@ -80,12 +108,14 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
       if (kind === "company") return new Set(people.map((p) => p._id));
       if (kind === "branch" && branch) {
         return new Set(
-          people.filter((p) => p.branches.some((b) => b._id === branch)).map((p) => p._id)
+          people
+            .filter((p) => p.branches.some((b) => b._id === branch))
+            .map((p) => p._id),
         );
       }
       return new Set<string>();
     },
-    [people]
+    [people],
   );
 
   // "Whole company" is the default, so seed it once the people have loaded.
@@ -122,7 +152,8 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
       firstStepRender.current = false;
       return;
     }
-    const target = focusAfterStep.current && document.getElementById(focusAfterStep.current);
+    const target =
+      focusAfterStep.current && document.getElementById(focusAfterStep.current);
     focusAfterStep.current = null;
     (target || headingRef.current)?.focus();
   }, [step]);
@@ -138,12 +169,16 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
   };
 
   // --- validation (blur-first; errors clear as soon as the user engages) ---
-  const nameError = !name.trim() ? "Enter a channel name, like “announcements”." : "";
-  const branchError = audience === "branch" && !branchId ? "Choose a branch." : "";
+  const nameError = !name.trim()
+    ? "Enter a channel name, like “announcements”."
+    : "";
+  const branchError =
+    audience === "branch" && !branchId ? "Choose a branch." : "";
   const membersError =
     selected.size === 0 ? "Add at least one person besides yourself." : "";
 
-  const showNameError = (touched.name || tried.name) && (nameError || nameServerError);
+  const showNameError =
+    (touched.name || tried.name) && (nameError || nameServerError);
   const showBranchError = (touched.branch || tried.members) && branchError;
   // With no branch chosen yet the list isn't shown, so that error comes first.
   const showMembersError = tried.members && !branchError && membersError;
@@ -171,8 +206,10 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
     }
     if (step === 1) {
       setTried((t) => ({ ...t, members: true }));
-      if (branchError) return document.getElementById("channel-branch")?.focus();
-      if (membersError) return document.getElementById("member-search")?.focus();
+      if (branchError)
+        return document.getElementById("channel-branch")?.focus();
+      if (membersError)
+        return document.getElementById("member-search")?.focus();
     }
     goTo(step + 1);
   };
@@ -191,11 +228,15 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
     } catch (error) {
       if (isAxiosError(error) && error.response?.status === 409) {
         // The name belongs to step 1, so take the user back to it.
-        setNameServerError("A channel with this name already exists. Try another name.");
+        setNameServerError(
+          "A channel with this name already exists. Try another name.",
+        );
         goTo(0, "channel-name");
         return;
       }
-      toast.error(getErrorMessage(error, "Couldn't create the channel. Try again."));
+      toast.error(
+        getErrorMessage(error, "Couldn't create the channel. Try again."),
+      );
     }
   };
 
@@ -207,11 +248,12 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
   };
 
   const creating = createChannel.isPending;
-  const audienceLabel = AUDIENCES.find((a) => a.value === audience)?.label ?? "";
+  const audienceLabel =
+    AUDIENCES.find((a) => a.value === audience)?.label ?? "";
   const branchName = activeBranches.find((b) => b._id === branchId)?.name;
   const selectedNames = useMemo(
     () => people.filter((p) => selected.has(p._id)).map((p) => p.name),
-    [people, selected]
+    [people, selected],
   );
 
   const footer = confirmDiscard ? (
@@ -221,7 +263,9 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
       className="flex flex-wrap items-center justify-between gap-3"
     >
       <p className="text-sm font-medium text-slate-800">
-        {name.trim() ? `Discard channel “${name.trim()}”?` : "Discard this new channel?"}
+        {name.trim()
+          ? `Discard channel “${name.trim()}”?`
+          : "Discard this new channel?"}
       </p>
       <div className="flex gap-2">
         <button
@@ -257,7 +301,9 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
         aria-disabled={creating}
         className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 aria-disabled:opacity-70"
       >
-        {creating && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+        {creating && (
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        )}
         {step < LAST_STEP ? "Next" : creating ? "Creating…" : "Create channel"}
       </button>
     </div>
@@ -294,7 +340,10 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
           <div>
             {stepHeading("Name your channel", "Next, you'll choose who joins.")}
 
-            <label htmlFor="channel-name" className="mb-1.5 block text-sm font-medium text-slate-800">
+            <label
+              htmlFor="channel-name"
+              className="mb-1.5 block text-sm font-medium text-slate-800"
+            >
               Channel name <span className="text-red-600">*</span>
             </label>
             <input
@@ -307,7 +356,9 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
               required
               aria-required="true"
               aria-invalid={showNameError ? true : undefined}
-              aria-describedby={showNameError ? "channel-name-error" : "channel-name-hint"}
+              aria-describedby={
+                showNameError ? "channel-name-error" : "channel-name-hint"
+              }
               onChange={(e) => {
                 setName(e.target.value);
                 setNameServerError("");
@@ -318,12 +369,21 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
               className={fieldClass(!!showNameError)}
             />
             {showNameError ? (
-              <p id="channel-name-error" role="alert" className="mt-1.5 text-sm text-red-600">
+              <p
+                id="channel-name-error"
+                role="alert"
+                className="mt-1.5 text-sm text-red-600"
+              >
                 {nameError || nameServerError}
               </p>
             ) : (
-              <p id="channel-name-hint" className="mt-1.5 flex justify-between text-xs text-slate-500">
-                <span>Pick something short. Channels can't be renamed yet.</span>
+              <p
+                id="channel-name-hint"
+                className="mt-1.5 flex justify-between text-xs text-slate-500"
+              >
+                <span>
+                  Pick something short. Channels can't be renamed yet.
+                </span>
                 <span aria-hidden="true">
                   {name.length}/{MAX_NAME_LENGTH}
                 </span>
@@ -337,7 +397,7 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
           <div className="space-y-6">
             {stepHeading(
               "Choose who joins",
-              "Start from a group, then add or remove anyone below."
+              "Start from a group, then add or remove anyone below.",
             )}
 
             <fieldset>
@@ -381,7 +441,9 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
                         <span className="block text-sm font-medium text-slate-800">
                           {option.label}
                         </span>
-                        <span className="block text-xs text-slate-500">{hint}</span>
+                        <span className="block text-xs text-slate-500">
+                          {hint}
+                        </span>
                       </span>
                     </label>
                   );
@@ -394,7 +456,10 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
 
             {audience === "branch" && (
               <div>
-                <label htmlFor="channel-branch" className="mb-1.5 block text-sm font-medium text-slate-800">
+                <label
+                  htmlFor="channel-branch"
+                  className="mb-1.5 block text-sm font-medium text-slate-800"
+                >
                   Branch <span className="text-red-600">*</span>
                 </label>
                 <select
@@ -403,7 +468,9 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
                   required
                   aria-required="true"
                   aria-invalid={showBranchError ? true : undefined}
-                  aria-describedby={showBranchError ? "channel-branch-error" : undefined}
+                  aria-describedby={
+                    showBranchError ? "channel-branch-error" : undefined
+                  }
                   onChange={(e) => {
                     chooseBranch(e.target.value);
                     setEdited(true);
@@ -419,7 +486,11 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
                   ))}
                 </select>
                 {showBranchError && (
-                  <p id="channel-branch-error" role="alert" className="mt-1.5 text-sm text-red-600">
+                  <p
+                    id="channel-branch-error"
+                    role="alert"
+                    className="mt-1.5 text-sm text-red-600"
+                  >
                     {branchError}
                   </p>
                 )}
@@ -427,11 +498,18 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
             )}
 
             <section aria-labelledby="members-heading">
-              <h4 id="members-heading" className="mb-1 text-sm font-medium text-slate-800">
+              <h4
+                id="members-heading"
+                className="mb-1 text-sm font-medium text-slate-800"
+              >
                 Members <span className="text-red-600">*</span>
               </h4>
               {showMembersError && (
-                <p id="members-error" role="alert" className="mb-3 text-sm font-medium text-red-600">
+                <p
+                  id="members-error"
+                  role="alert"
+                  className="mb-3 text-sm font-medium text-red-600"
+                >
                   {membersError}
                 </p>
               )}
@@ -471,18 +549,28 @@ const CreateChannelModal = ({ open, onClose, onCreated }: CreateChannelModalProp
         {/* ---------------- Step 3: review ---------------- */}
         {step === 2 && (
           <div>
-            {stepHeading("Review and create", "Check the details. You can go back to change anything.")}
+            {stepHeading(
+              "Review and create",
+              "Check the details. You can go back to change anything.",
+            )}
             <dl className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
               <ReviewRow label="Name" onEdit={() => goTo(0, "channel-name")}>
-                <span className="font-medium text-slate-900">{name.trim()}</span>
+                <span className="font-medium text-slate-900">
+                  {name.trim()}
+                </span>
               </ReviewRow>
               <ReviewRow label="Starts with" onEdit={() => goTo(1)}>
-                <span className="font-medium text-slate-900">{audienceLabel}</span>
+                <span className="font-medium text-slate-900">
+                  {audienceLabel}
+                </span>
                 {audience === "branch" && branchName && (
                   <span className="text-slate-600"> · {branchName}</span>
                 )}
               </ReviewRow>
-              <ReviewRow label="Members" onEdit={() => goTo(1, "member-search")}>
+              <ReviewRow
+                label="Members"
+                onEdit={() => goTo(1, "member-search")}
+              >
                 <span className="font-medium text-slate-900">
                   {plural(selected.size, "person", "people")}
                 </span>

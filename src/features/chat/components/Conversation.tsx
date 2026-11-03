@@ -61,6 +61,8 @@ interface ConversationProps {
   onDiscard: (message: ChatMessage) => void;
   onTyping: () => void;
   onBack: () => void;
+  onOpenInfo: () => void;
+  infoOpen: boolean;
 }
 
 const startsGroup = (messages: ChatMessage[], i: number) => {
@@ -87,6 +89,8 @@ const Conversation = ({
   onDiscard,
   onTyping,
   onBack,
+  onOpenInfo,
+  infoOpen,
 }: ConversationProps) => {
   const isDirect = room.type === "DIRECT";
   const readOnly = isDirect && !!room.readOnly;
@@ -296,6 +300,14 @@ const Conversation = ({
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
+        {/* The whole identity block opens the info panel, like WhatsApp. */}
+        <button
+          type="button"
+          onClick={onOpenInfo}
+          aria-label={isDirect ? "View contact info" : "View channel info"}
+          aria-expanded={infoOpen}
+          className="-my-1 flex min-w-0 flex-1 items-center gap-3 rounded-lg py-1 text-left hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        >
         {isDirect ? (
           <>
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-100 text-xs font-semibold text-purple-700">
@@ -324,6 +336,7 @@ const Conversation = ({
             </div>
           </>
         )}
+        </button>
       </div>
 
       {/* Messages */}
